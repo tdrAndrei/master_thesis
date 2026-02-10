@@ -10,3 +10,4 @@ missfont.log
 *.fdb_latexmk
 *.aux
 .~lock.document.pdf#
+.vscode
