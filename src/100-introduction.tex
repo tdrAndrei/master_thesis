@@ -2,4 +2,11 @@
 
 \chapter{\label{chap:introduction}Introduction}
 
-Introduction here.\autocite{SustrikZeroMQ}
+Spoofax is a language workbench developed at TUDelft. Its main goal is to allow users to write end to end tooling for new languages in a declarative style and to offer abstractions for most common workflows. In Spoofax users will generally start with declaring the syntax of their language using a grammar file. This crucial step allows Spoofax to convert source code to an AST representation, which will be used as input to the other procedures in the framework.
+
+The procedure which we are interested is typechecking, described through the Statix language. In many ways Statix is similar to $\lambda$-Prolog, a relational language, and dialect of Prolog which adds types and the ability to construct lambda terms. Akin to predicates in $\lambda$-Prolog, Statix has the concept of typed rules. Rules have multiple arguments (which can be a reference to a node in the scope graph or a term) and potentially a single output. Users are able to pattern match on the arguments.
+
+\section{\label{sec:contributions}Contributions}
+In this thesis the main contribution aims to improve the first order unification algorithm in Statix to one that uses higher order pattern unification \textbf{(RQ 1)}. To validate the algorithm, we will create a simple dependently typed language in Spoofax.
+
+Given the similarities between $\lambda$-Prolog and Statix, it is interesting to discuss the differences in expresivity and computability. $\lambda$-Prolog's syntax puts it closer to a theoretical specification of a type checker. It is very easy to mimic the rules of a typechecker with $\lambda$-Prolog by using predicates, universal/existential quantifiers and it's powerful higher order unification algorithm. On the other hand, Statix offers scope graphs as a name resolution algorithm instead of being able to generate fresh names through a universal quantifier. This makes it more practical for language builders as it easily supports mutual refferences, packages, imports and other types of non-lexical scoping. Therefore, we ask what are the differences between the two approaches when building a practical dependent type language \textbf{(RQ 2)}.
