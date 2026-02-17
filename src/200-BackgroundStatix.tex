@@ -1,0 +1,58 @@
+\chapter{\label{chap:statix}Background: Statix}
+This chapter will focus on the concepts behind Statix. We also thing it is necessary to offer readers information about Spoofax and its features. It is important to understand where Statix sits in the context of the Spoofax framework to get a better insight into what's possible to do in a typechecker. 
+
+Spoofax is a framework that allows users to easily implement end-to-end tooling for their programming language. Made primarily for use within Eclipse, Spoofax comes as a plugin. In Spoofax, users start by defining the grammar of the language using SDF3. Later, one can write various pases, such as desugaring steps, IDE services or an interpreter, on the AST with Stratego and typing rules using Statix. 
+
+\section{Parsing the AST}
+Getting an AST representation of the source code is one of the first things needed to compile or typecheck a language. This process gives meaning to the tokens found in a source code file. In SDF3, the parsing rules are defined declaratively, similarly to BNF notation. You can define context-free sorts with multiple constructors. The constructors can match on code tokens or other sorts. As an example, users might find it helpful to define a sort for expressions and another for types. The parsing starts from a top level sort and will try to match the tokens with the defined constructors. As an example consider the grammar in figure.
+ 
+\begin{lstlisting}[style=sdfgrammar, caption={Simple language with Type and Expr sorts}]
+context-free sorts
+  Expr
+  Type 
+
+context-free syntax
+  Expr.Num = Number
+  Expr.Eq = [[Expr] == [Expr]] {left}
+  Expr.Add = [[Expr] + [Expr]] {left}
+  Expr.Var = Name 
+  Expr.Lam = [\[Name] : [Type] -> [Expr]]
+  Expr.App = [[Expr] [Expr]] {right}
+
+  Type.Nat = [nat]
+  Type.Fun = [[Type] -> [Type]]
+context-free priorities
+  {Expr.Num Expr.Var} > Expr.App > Expr.Add > Expr.Eq > Expr.Lam
+\end{lstlisting}
+
+The AST is in \textbf{ATerm} format and will contain the constructors that were matched. For instance, the program \lstinlineb{\x : Int ->  x + 1 }, will produce the AST:
+\begin{lstlisting}
+Expr.Lam("x", Type.Nat(), Expr.Add(Expr.Var("x"), Number(1)))
+\end{lstlisting}
+
+\section{Unification}
+This section will explain what unification is, where it is used and the different types of algorithms.
+
+In general unification is concerned with filling in missing parts of terms in order to make them equal. Unification wants to know if two terms A and B are equal, and if not, if they can be made equal by filling in their free variables.
+For example, consider the unification problem $f(x, y) \equiv f(1, g(2))$ (assume $f$ and $g$ are known functions). The algorithm should find the substitutions $x \mapsto 1, y \mapsto g(2)$. 
+
+Common requirements for a unification algorithm are decidability and the generality of the solution. Decidability is a natural requirement, so it is interesting to discuss what generality of the solution means. We would prefer if our algorithm will find the substitution that doesn't constraint the term more than it needs to. Consider the problem of unifying the terms $f(x, y) \equiv f(y, x)$. A possible solution is the substitution $x \mapsto 1, y \mapsto 1$. However this solution constraints the free variables too much. The most general solution to this problem is $x \mapsto y$. Given the difficulty of unification, one may wonder if a decidable algorithm exists for the most general unifier (MGU). To answer this, we must make a distinction on the type of terms we will substitute for the free variables. The biggest distinction is between so called first order and higher order terms. First order terms are variables, constants and in general terms that dont bind new variables. First order unification is decidable and admits the most general unifier.
+
+\section{Statix}
+Statix is used by Spoofax uses to perform typechecking of the user's language. Statix is based on terms and unification. The main concepts of Statix are:
+\begin{itemize}
+  \item \textbf{Terms}: This is the smallest abstraction that Statix provides. Statix terms can be unified using the first order unification algorithm built into the language.
+  \item \textbf{Rules}: These are similar to predicates in Prolog. Given an instantiation of a rule, Statix will try to prove it. Rules can pattern match on their arguments, and in each case will require some constraint(s) to hold in order for them to be proven.
+  \item \textbf{Constraints}: Constraints are problems that Statix will work on involving term and scope graph operations. Possible constraints are (dis)equality, conjunction, disjunction and scope graph constraints. For example, a rule can require that two terms are equal, or that a new scope is added to the scope graph.
+\end{itemize}
+
+\todo{Functional rules will return a value and optionally can introduce variables and constraints}
+\todo{You can introduce variables in the rule head, but at runtime it will receive an actual value. Variables introduced as existential will be filled by unification}
+Terms in Statix follow a sorted logic. The user can declare new sorts and constructors for objects in the sort. This design differs from $\lambda$-Prolog as you cannot create lambda terms. They are not first class citizens in Statix. Moreover, Statix does not perform function application on terms.
+
+Rules are the Statix equivalent of predicates in $\lambda$-Prolog. In $\lambda$-Prolog, the convention is that the output of a predicate is stored in its last argument. The caller will provide a fresh, unfilled variable to the predicate. When the predicate is proven, the variable will be filled with a value through unification. This is also the case in Statix. However, Statix also offers functional rules, which mimic functions in functional programming languages. Functional rules are converted by Statix to regular rules as syntactic sugar.
+When simplyfying constraints, Statix doesn't backtrack. This is different to $\lambda$Prolog implementations such as Elpi(\autocite). Statix will try at most one rule for each constraint. The appropriate rule is selected by applying the following heuristics in order: 1. Rules with a smaller domain are preferred over rules with a larger domain. 2. When pairwise comparing rules, the rule for which, in left-to-right order, a more specific pattern is encountered first is preferred over the other. For all the cases where the heuristic can't decide, Statix emits compile time errors.
+
+Although the Statix language does not distinguish between variables in rule heads and existentials, the solver treats those quite differently. On rule application, occurrences of variables from rule heads in the body of the rule are substituted by the actual arguments. For example, in a specification containing the rule rule(x) :- x == ()., simplifying the constraint rule(()) will result in the residual constraint () == (), which trivially holds. However, when simplifying the constraint {x} x == (), simplifying will generate a fresh unification variable (say ?x-1), and substitute that in the constraint, yielding ?x-1 == (). Solving that will create a new mapping ?x-1 |-> () in the unifier of the solver result.
+
+\section{Scope Graphs}

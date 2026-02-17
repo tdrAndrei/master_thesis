@@ -63,6 +63,7 @@
 \lstset{
   breaklines=false,%true,
   basicstyle=\normalsize\ttfamily,
+  backgroundcolor=\color{grammarbg},
 }
 % Special command that allows \- to be used, which causes a keyword
 % to be broken there, with a hypen inserted. E.g. \lstinlineb{Hello\-World}.
@@ -148,3 +149,25 @@
 \usepackage{acronym}
 % Define acronyms in acronyms.tex
 
+\lstdefinelanguage{SDF3}{
+  keywords={Name, Number, module, imports, context-free, lexical, syntax, start-symbols},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]"
+}
+
+\definecolor{grammarbg}{gray}{0.95}
+
+\lstdefinestyle{sdfgrammar}{
+  language=SDF3,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  stringstyle=\ttfamily,
+  captionpos=b,
+  numbers=none,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  frame=none
+}
