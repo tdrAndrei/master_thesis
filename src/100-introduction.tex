@@ -2,13 +2,24 @@
 
 \chapter{\label{chap:introduction}Introduction}
 
-Spoofax is a language workbench developed at TUDelft. Its main goal is to allow users to write end to end tooling for new languages in a declarative style and to offer abstractions for most common workflows. In Spoofax users will generally start with declaring the syntax of their language using a grammar file. This crucial step allows Spoofax to convert source code to an AST representation, which will be used as input to the other procedures in the framework.
+Language workbenches aim to reduce the cost of designing and implementing programming languages by providing high-level, declarative abstractions for syntax, name resolution, and type checking. Spoofax, developed at TU Delft, is one such workbench. It enables users to define the syntax of a language through a grammar specification, from which an abstract syntax tree (AST) representation is automatically derived. This AST forms the basis for subsequent analyses, including name resolution and type checking.
 
-The procedure which we are interested is typechecking, described through the Statix language. In many ways Statix is similar to $\lambda$-Prolog, a relational language, and dialect of Prolog which adds types and the ability to construct lambda terms. Akin to predicates in $\lambda$-Prolog, Statix has the concept of typed rules. Rules have multiple arguments (which can be a reference to a node in the scope graph or a term) and potentially a single output. Users are able to pattern match on the arguments.
+Type checking in Spoofax is specified using Statix, a constraint-based language designed for expressing typing and name resolution rules declaratively. Statix combines term constraints with scope graphs, a graph-based representation of scopes and the relations between them. Scope graphs are particularily well suited for imports, mutual refferences and other types of non-lexical scoping.
+
+At a conceptual level, Statix bears similarities to $\lambda$-Prolog, a higher-order logic programming language that extends Prolog with types and higher-order terms. In $\lambda$-Prolog, type systems can be encoded directly as logical specifications using predicates, quantification, and higher-order unification. Terms in $\lambda$-Prolog are written using higher order abstract syntax (HOAS) which makes the language particularly well-suited for turning formal type checker rules into an implementation.
+
+HOAS and Scope Graphs differ fundamentally in how they treat binding and unification. $\lambda$-Prolog relies on meta-level quantification and higher-order unification to model binding, whereas Statix represents binding explicitly using scope graphs and resolves names via constraints. While scope graphs provide strong support for modular and non-lexical scoping, they do not natively provide higher-order pattern unification, which is central to many dependently typed systems.
+
+This tension motivates the central question of this thesis: can higher-order pattern unification be integrated with a scope-graph-based constraint system in a principled and practical way? Furthermore, how does such an approach compare to higher-order logic programming systems when implementing a dependently typed language?
+
+To address these questions, we design and evaluate a higher-order pattern unification algorithm tailored to a scope-graph-based setting, and analyze its implications for implementing dependently typed languages in Spoofax.
 
 \section{\label{sec:contributions}Contributions}
-In this thesis the main contribution aims to improve the first order unification algorithm in Statix to one that uses higher order pattern unification \textbf{(RQ 1)}. To validate the algorithm, we will create a simple dependently typed language in Spoofax.
 
-Given the similarities between $\lambda$-Prolog and Statix, it is interesting to discuss the differences in expresivity and computability. $\lambda$-Prolog's syntax puts it closer to a theoretical specification of a type checker. It is very easy to mimic the rules of a typechecker with $\lambda$-Prolog by using predicates, universal/existential quantifiers and it's powerful higher order unification algorithm. On the other hand, Statix offers scope graphs as a name resolution algorithm instead of being able to generate fresh names through a universal quantifier. This makes it more practical for language builders as it easily supports mutual refferences, packages, imports and other types of non-lexical scoping. Therefore, we ask what are the differences between the two approaches when building a practical dependent type language \textbf{(RQ 2)}.
+This thesis addresses two research questions and makes the following contributions.
 
-The research questions are important for advancing the study of dependently typed language. We want to extend Statix's ability to compile various dependent type languages.
+\paragraph{Higher-order pattern unification in scope-graph systems (RQ1).}
+We design and formalize an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix, demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
+
+\paragraph{Comparison of implementation paradigms for dependent typing (RQ2).}
+We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems. The analysis examines differences in expressivity and computability, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping. This clarifies the trade-offs between meta-level binding mechanisms and explicit scope representations when implementing practical dependently typed languages.
