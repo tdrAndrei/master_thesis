@@ -1,8 +1,5 @@
 % Manual citations here
 
-
-
-
 @online{SustrikZeroMQ,
   author = {Martin Sústrik},
   title = {ZeroMQ},
@@ -10,3 +7,151 @@
   url = {http://aosabook.org/en/zeromq.html},
   urldate = {2018-02-16}
 }
+
+@article{6898704,
+  author   = {Wachsmuth, Guido H. and Konat, Gabriël D.P. and Visser, Eelco},
+  journal  = {IEEE Software},
+  title    = {Language Design with the Spoofax Language Workbench},
+  year     = {2014},
+  volume   = {31},
+  number   = {5},
+  pages    = {35-43},
+  keywords = {Syntactics;Programming;Computer languages;Production;Design methodology;DSL;software engineering;integrated environments;design languages;programming languages;programming environments;construction tools;integrated development environments;IDE;Spoofax},
+  doi      = {10.1109/MS.2014.100}
+}
+
+@article{sdf3,
+  author     = {Kats, Lennart C.L. and Visser, Eelco and Wachsmuth, Guido},
+  title      = {Pure and declarative syntax definition: paradise lost and regained},
+  year       = {2010},
+  issue_date = {October 2010},
+  publisher  = {Association for Computing Machinery},
+  address    = {New York, NY, USA},
+  volume     = {45},
+  number     = {10},
+  issn       = {0362-1340},
+  url        = {https://doi.org/10.1145/1932682.1869535},
+  doi        = {10.1145/1932682.1869535},
+  abstract   = {Syntax definitions are pervasive in modern software systems, and serve as the basis for language processing tools like parsers and compilers. Mainstream parser generators pose restrictions on syntax definitions that follow from their implementation algorithm. They hamper evolution, maintainability, and compositionality of syntax definitions. The pureness and declarativity of syntax definitions is lost. We analyze how these problems arise for different aspects of syntax definitions, discuss their consequences for language engineers, and show how the pure and declarative nature of syntax definitions can be regained.},
+  journal    = {SIGPLAN Not.},
+  month      = oct,
+  pages      = {918–932},
+  numpages   = {15},
+  keywords   = {syntax definition, sglr, sdf, parsers, grammarware, grammars, declarative}
+}
+
+@inproceedings{sdf3,
+  author    = {Kats, Lennart C.L. and Visser, Eelco and Wachsmuth, Guido},
+  title     = {Pure and declarative syntax definition: paradise lost and regained},
+  year      = {2010},
+  isbn      = {9781450302036},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {https://doi.org/10.1145/1869459.1869535},
+  doi       = {10.1145/1869459.1869535},
+  abstract  = {Syntax definitions are pervasive in modern software systems, and serve as the basis for language processing tools like parsers and compilers. Mainstream parser generators pose restrictions on syntax definitions that follow from their implementation algorithm. They hamper evolution, maintainability, and compositionality of syntax definitions. The pureness and declarativity of syntax definitions is lost. We analyze how these problems arise for different aspects of syntax definitions, discuss their consequences for language engineers, and show how the pure and declarative nature of syntax definitions can be regained.},
+  booktitle = {Proceedings of the ACM International Conference on Object Oriented Programming Systems Languages and Applications},
+  pages     = {918–932},
+  numpages  = {15},
+  keywords  = {declarative, grammars, grammarware, parsers, sdf, sglr, syntax definition},
+  location  = {Reno/Tahoe, Nevada, USA},
+  series    = {OOPSLA '10}
+}
+
+
+@software{noauthor_metaborgministatixhs_2023,
+  title     = {metaborg/ministatix.hs},
+  rights    = {Apache-2.0},
+  url       = {https://github.com/metaborg/ministatix.hs},
+  abstract  = {A playground Statix implementation},
+  publisher = {{MetaBorg}},
+  urldate   = {2026-01-09},
+  date      = {2023-02-15},
+  note      = {original-date: 2019-09-18T08:45:56Z},
+  keywords  = {constraint, haskell, solver, specification, statix, type-system}
+}
+
+@article{van_antwerpen_scopes_2018,
+  title        = {Scopes as types},
+  volume       = {2},
+  url          = {https://dl.acm.org/doi/10.1145/3276484},
+  doi          = {10.1145/3276484},
+  abstract     = {Scope graphs are a promising generic framework to model the binding structures of programming languages, bridging formalization and implementation, supporting the definition of type checkers and the automation of type safety proofs. However, previous work on scope graphs has been limited to simple, nominal type systems. In this paper, we show that viewing scopes as types enables us to model the internal structure of types in a range of non-simple type systems (including structural records and generic classes) using the generic representation of scopes. Further, we show that relations between such types can be expressed in terms of generalized scope graph queries. We extend scope graphs with scoped relations and queries. We introduce Statix, a new domain-specific meta-language for the specification of static semantics, based on scope graphs and constraints. We evaluate the scopes as types approach and the Statix design in case studies of the simply-typed lambda calculus with records, System F, and Featherweight Generic Java.},
+  pages        = {114:1--114:30},
+  issue        = {{OOPSLA}},
+  journaltitle = {Case Studies for Article: Scopes as Types},
+  shortjournal = {Proc. {ACM} Program. Lang.},
+  author       = {van Antwerpen, Hendrik and Bach Poulsen, Casper and Rouvoet, Arjen and Visser, Eelco},
+  urldate      = {2026-01-09},
+  date         = {2018-10-24},
+  file         = {Full Text PDF:/Users/tudorandrei/Zotero/storage/CXTMZGQN/van Antwerpen et al. - 2018 - Scopes as types.pdf:application/pdf}
+}
+
+@article{bauer_extensible_2022,
+  title        = {An extensible equality checking algorithm for dependent type theories},
+  volume       = {Volume 18, Issue 1},
+  rights       = {https://creativecommons.org/licenses/by/4.0},
+  issn         = {1860-5974},
+  url          = {https://lmcs.episciences.org/7268},
+  doi          = {10.46298/lmcs-18(1:17)2022},
+  abstract     = {We present a general and user-extensible equality checking algorithm that is applicable to a large class of type theories. The algorithm has a type-directed phase for applying extensionality rules and a normalization phase based on computation rules, where both kinds of rules are deﬁned using the type-theoretic concept of object-invertible rules. We also give suﬃcient syntactic criteria for recognizing such rules, as well as a simple pattern-matching algorithm for applying them. A third component of the algorithm is a suitable notion of principal arguments, which determines a notion of normal form. By varying these, we obtain known notions, such as weak head-normal and strong normal forms. We prove that our algorithm is sound. We implemented it in the Andromeda 2 proof assistant, which supports user-deﬁnable type theories. The user need only provide the equality rules they wish to use, which the algorithm automatically classiﬁes as computation or extensionality rules, and select appropriate principal arguments.},
+  pages        = {7268},
+  journaltitle = {Logical Methods in Computer Science},
+  author       = {Bauer, Andrej and Komel, Anja Petković},
+  urldate      = {2026-01-27},
+  date         = {2022-01-19},
+  langid       = {english},
+  file         = {PDF:/Users/tudorandrei/Zotero/storage/JPADY4YR/Bauer and Komel - 2022 - An extensible equality checking algorithm for dependent type theories.pdf:application/pdf}
+}
+
+@inproceedings{abel_extensions_2018,
+  title    = {Extensions to Miller ’ s Pattern Unification for Dependent Types and Records},
+  url      = {https://www.semanticscholar.org/paper/Extensions-to-Miller-%E2%80%99-s-Pattern-Unification-for-Abel-Pientka/4e2f27124f121694f1656188e5d4726932535bb7},
+  abstract = {Several extensions to Miller’s algorithm for higher-order pattern unification are presented. The main extension is to dependent record types which are decomposed into strong Sigma-types and an extensional unit type. Our algorithm takes type isomorphisms into account to translate unification problems containing dependent record types into those involving only dependent function types. Further extensions such as postponement of constraints, handling of non-linear patterns, and pruning improve the performance of the unifier in practical type reconstruction problems. Our solution takes the form of a inference system that applies small refinements to a constraint set until an inconsistency has surfaced or a (partial) solution been reached. The article describes the individual refinement steps of our algorithm using numerous examples together with the correctness proof of the algorithm.},
+  author   = {Abel, Andreas and Pientka, B.},
+  urldate  = {2026-01-27},
+  date     = {2018},
+  file     = {Full Text PDF:/Users/tudorandrei/Zotero/storage/2WAIBSWJ/Abel and Pientka - 2018 - Extensions to Miller ’ s Pattern Unification for Dependent Types and Records.pdf:application/pdf}
+}
+
+@inproceedings{dunchev_elpi_2015,
+  location   = {Suva, Fiji},
+  title      = {{ELPI}: fast, Embeddable, λProlog Interpreter},
+  url        = {https://inria.hal.science/hal-01176856},
+  shorttitle = {{ELPI}},
+  abstract   = {We present a new interpreter for λProlog that runs consistently faster than the byte code compiled by Teyjus, that is believed to be the best available implementation of λProlog. The key insight is the identification of a fragment of the language, which we call reduction-free fragment (L β λ), that occurs quite naturally in λProlog programs and that admits constant time reduction and unification rules.},
+  booktitle  = {{LNCS}},
+  author     = {Dunchev, Cvetan and Guidi, Ferruccio and Sacerdoti Coen, Claudio and Tassi, Enrico},
+  urldate    = {2026-02-09},
+  date       = {2015-11},
+  file       = {HAL PDF Full Text:/Users/tudorandrei/Zotero/storage/WCVQDHGN/Dunchev et al. - 2015 - ELPI fast, Embeddable, λProlog Interpreter.pdf:application/pdf}
+}
+
+@online{noauthor_tutorial_nodate,
+  title   = {Tutorial on the Elpi programming language},
+  url     = {https://lpcic.github.io/coq-elpi/tutorial_elpi_lang.html},
+  urldate = {2026-02-09},
+  file    = {Tutorial on the Elpi programming language:/Users/tudorandrei/Zotero/storage/TY5VMLZ9/tutorial_elpi_lang.html:text/html}
+}
+
+@article{none_dependently_2023,
+  title    = {Dependently Typed Languages in Statix},
+  url      = {https://repository.tudelft.nl/record/uuid:7bf3c0f5-71fb-4e08-bcdb-1c873c7e1e63},
+  abstract = {Static type systems can greatly enhance the quality of programs, but implementing a type checker for them is challenging and error-prone. The Statix meta-language (part of the Spoofax language workbench) aims to make this task easier by automatically deriving a type checker from a declarative specification of the type system. However, so far Statix has not been used to implement a type system with dependent types, an expressive class of type systems which require evaluation of terms during type checking. {\textless}br/{\textgreater}{\textless}br/{\textgreater}In this thesis, we present a specification of a simple dependently typed language in Statix, and discuss how to extend it with several common features such as inductive data types, universes, and inference of implicit arguments. While we encountered some challenges in the implementation, our conclusion is that Statix is already usable as a tool for implementing dependent types.},
+  author   = {None, None},
+  urldate  = {2026-02-10},
+  date     = {2023},
+  langid   = {english},
+  file     = {Full Text PDF:/Users/tudorandrei/Zotero/storage/LII45UAN/None - 2023 - Dependently Typed Languages in Statix.pdf:application/pdf}
+}
+
+@online{noauthor_jonathanbrouwermaster-thesis_nodate,
+  title      = {{JonathanBrouwer}/master-thesis at evcs},
+  url        = {https://github.com/JonathanBrouwer/master-thesis},
+  abstract   = {Contribute to {JonathanBrouwer}/master-thesis development by creating an account on {GitHub}.},
+  titleaddon = {{GitHub}},
+  urldate    = {2026-02-17},
+  langid     = {english},
+  file       = {Snapshot:/Users/tudorandrei/Zotero/storage/H464PDNH/master-thesis.html:text/html}
+}
+
