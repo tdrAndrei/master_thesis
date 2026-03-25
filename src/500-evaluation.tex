@@ -1,5 +1,92 @@
 % !TEX root = document.tex
 
-\chapter{\label{chap:evaluation}Evaluation}
+\chapter{\label{chap:Results}Results}
 
-Evaluation here.
+To demonstrate the combination of scope graph name resolution with higher order unification, we will describe how to typecheck a dependent type language. The main feature of this language is the ability to infer implicit arguments.
+
+\[
+  \begin{aligned}
+     & A B    & ::= & \; Set \mid A \equiv B \mid A \rightarrow B \mid (x : A) \rightarrow B \mid \{x : A\} \rightarrow B                           & types             \\
+     & M N    & ::= & \; x \mid ?m \mid M :: A \mid \lambda x.\; M \mid M\; N \mid refl \mid let \; x = M; \; N \mid postulate \; x \colon A ; \; M & terms             \\
+     & \Gamma & ::= & \; \Gamma; x \colon A                                                                                                         & typing \; context \\
+     & \Delta & ::= & \; \Delta; ?m \colon A                                                                                                        & meta-context      \\
+  \end{aligned}
+\]
+
+Typechecking is done with bidirectional rules with $\Rightarrow$ for inferring \cref{fig:infer} and $\Leftarrow$ for checking \cref{fig:check}. For some rules the relation $A = B$ appears, which suggests that $A$ and $B$ should be unified. The meta context $\Delta$ should have mutable semantics, meaning that solving or creating a metavariable in one branch of the inference tree should mutate the context for all the other branches. This is opposed to the typing context, which is responsible for storing the identifiers that are in scope, associated with their types.
+
+\begin{figure}
+  \begin{mathpar}
+    \inferrule[Meta]
+    {?a:A \in \Delta }
+    {\Gamma, \Delta \vdash ?a \Rightarrow A}
+
+    \inferrule[Var]
+    {x:A \in \Gamma }
+    {\Gamma, \Delta \vdash x \Rightarrow A}
+
+    \inferrule[Set]{ \;}
+    {\Gamma, \Delta \vdash Set \Rightarrow Set}
+
+    \inferrule[Pi]
+    { \Gamma, \Delta \vdash t \Rightarrow (x : A) \to B \\ \Gamma, \Delta \vdash u : A }
+    { \Gamma, \Delta \vdash t\;u \Rightarrow B[x \slash u] }
+
+    \inferrule[ImpPi]
+    { \Gamma, \Delta \vdash t \Rightarrow \{x : A\} \to B \\\Delta;?a \vdash (t \; ?a)\; u \Rightarrow C }
+    { \Gamma,\Delta \vdash t\;u \Rightarrow C }
+
+    \inferrule[Let]
+    { \Gamma, \Delta \vdash t \Rightarrow A \\ \Gamma;x \colon A, \Delta \vdash u : B }
+    { \Gamma, \Delta \vdash let \; x = t; \; u \Rightarrow B }
+
+    \inferrule[Postulate]
+    { \Gamma, \Delta \vdash A \Rightarrow Set \\ \Gamma;d \colon A, \Delta \vdash u : B }
+    { \Gamma, \Delta \vdash postulate \; d \colon A; \; u \Rightarrow B }
+
+  \end{mathpar}
+  \caption{Inference rules}
+  \label{fig:infer}
+\end{figure}
+
+\begin{figure}[t]
+  \begin{mathpar}
+    \inferrule[Lam]
+    { \Gamma; x\colon A, \Delta \vdash t \Leftarrow B }
+    { \Gamma, \Delta \vdash \lambda x. \; t \Leftarrow (x : A) \to B }
+
+    \inferrule[Implicit]
+    {\Gamma, \Delta;?m : A \vdash t \Leftarrow B[x \slash ?m]}
+    {\Gamma, \Delta \vdash t \Leftarrow \{x:A\} \to B}
+
+    \inferrule[Refl]
+    {\Gamma, \Delta \vdash X = Y}
+    {\Gamma, \Delta \vdash refl \Leftarrow X \equiv Y}
+
+    \inferrule[Set]
+    { \;}
+    {\Gamma, \Delta \vdash Set \Leftarrow Set}
+
+    \inferrule[Pi-Wellformed]
+    {\Gamma, \Delta \vdash A \Leftarrow Set \\ \Gamma;x:A, \Delta \vdash B \Leftarrow Set}
+    {\Gamma, \Delta \vdash (x:A) \to B \Leftarrow Set}
+
+    \inferrule[ImpPi-Wellformed]
+    {\Gamma, \Delta \vdash A \Leftarrow Set \\ \Gamma;x:A, \Delta \vdash B \Leftarrow Set}
+    {\Gamma, \Delta \vdash \{x:A\} \to B \Leftarrow Set}
+
+    \inferrule[Eq-Wellformed]
+    {\Gamma, \Delta \vdash t \Rightarrow A \\ \Gamma, \Delta \vdash u \Rightarrow B \\ A = B}
+    {\Gamma, \Delta \vdash t \equiv u \Leftarrow Set}
+
+    \inferrule[infer]
+    {\Gamma, \Delta \vdash t \Rightarrow A' \\ A = A'}
+    {\Gamma, \Delta \vdash t \Leftarrow A}
+
+  \end{mathpar}
+  \caption{Checking rules}
+  \label{fig:check}
+\end{figure}
+
+\subsection{Meta-context in scope graph}
+To model the meta-context in the scope graph framework we instantiate a toplevel meta-scope called \texttt{metaS}. Each rule should be given a reference to this exact scope, such that it has permission to extend it. To model the creation of new unsolved metavariable we create a new scope $s'$ with an $M$ labeled edge to \texttt{metaS}. The reference to the scope $s'$ becomes the unique identifier of the metavariable. When we want to instantiate a metavariable, we will create the \texttt{inst[id, V]} relation in metaS, where \texttt{id} is the metavariable's identifier and V represents its value. Such a relation can be easily queried for in any branch of our inference. Since we always have a reference to \texttt{metaS}, we want to search for \texttt{inst} relations with a given id, without leaving \texttt{metaS}
