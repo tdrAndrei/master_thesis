@@ -1,5 +1,35 @@
 % Manual citations here
 
+@inproceedings{neron_extensible_2015,
+  author    = {Neron, Pierre and Tolmach, Andrew and Visser, Eelco and Wachsmuth, Guido},
+  title     = {A Theory of Name Resolution},
+  booktitle = {Programming Languages and Systems (ESOP 2015)},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {9032},
+  pages     = {205--231},
+  year      = {2015},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-662-46669-8_9}
+}
+
+@book{aho_compilers_2006,
+  title     = {Compilers: Principles, Techniques, and Tools},
+  author    = {Aho, Alfred V. and Lam, Monica S. and Sethi, Ravi and Ullman, Jeffrey D.},
+  edition   = {2},
+  year      = {2006},
+  publisher = {Addison-Wesley},
+  isbn      = {978-0-321-48681-3}
+}
+
+@book{scott_programming_2015,
+  title     = {Programming Language Pragmatics},
+  author    = {Scott, Michael L.},
+  edition   = {4},
+  year      = {2015},
+  publisher = {Morgan Kaufmann},
+  isbn      = {978-0124104099}
+}
+
 @online{SustrikZeroMQ,
   author = {Martin Sústrik},
   title = {ZeroMQ},
@@ -200,3 +230,15 @@
   file       = {Snapshot:/Users/tudorandrei/Zotero/storage/H464PDNH/master-thesis.html:text/html}
 }
 
+@phdthesis{4bf44aa1779c4a968c555e1b54e16119,
+  title    = {Declarative Name Binding for Type System Specifications},
+  abstract = {Name binding is an integral part of the static semantics of programming languages. Modern languages commonly feature name binding constructs, such as packages, modules, and user-defined types that are essential to develop and maintain large programs. Static reasoning about name binding is key to support many services offered by modern programming environments, from type checking, to interactive code navigation and automatic refactoring. Formal specification of a programming language is important to understand and reason about the language, as well as to implement it.Expressive name binding features pose challenges for both high-level specifications and implementations. The first challenge is finding high-level abstractions to describe expressive name binding. The second challenge is correctly implementing high-level specifications that were not written with the goal of implementation in mind. Due to these challenges, specifications are often restricted to a core language that lacks many of the surface language's features. The surface language is only defined by the details of the lower-level implementation. Those implementations use specialized data structures and algorithms to support the full language, which limits code reuse, increases development effort, and makes it more difficult to ensure correctness.Meta-languages aim to address these challenges and bridge the gap between high-level specification and implementation by providing reusable abstractions for common aspects of programming languages, as well as reusable implementations for specifications in the meta-language. Reusable implementations greatly reduce development effort, and their correctness has to be shown only once instead of for each individual language implementation.This dissertation proposes a novel meta-language, Statix, for the specification of static semantics. It is based on scope graphs, a general model for name binding in programming languages (Neron et al., 2015). Statix supports the direct modeling of surface language name binding features, stays close to a familiar inference-style of specification, and allows automatically deriving implementations for compilers and editor services. This dissertation makes the following three contributions.First, we present the design of the meta-language Statix. Statix is a logic language extended with primitives to construct and query scope graphs. Specifications are written as logical predicates that abstract over evaluation order. The design is accompanied by a declarative semantics that gives a precise description of the meaning of specifications written in the meta-language.Second, we present an operational semantics for Statix that executes specifications in the meta-language as type checkers. We prove that the operational semantics is correct with respect to the declarative semantics. We observe that the operational semantics is incomplete, but argue based on our experience with case studies that this is rarely a problem in practice. We present a framework to implement implicitly parallelized scope-graph-based type checkers. We apply this to our Statix implementation, resulting in substantially improved runtime performance. Additionally, we propose an approach towards implementing language-parametric semantic editor services based on meta-language specifications.Third, we implement these operational semantics and present case studies of several core languages from the literature as well as of a large subset of Java. The case studies consist of specifications and executable test suites, which allows us to evaluate both the expressiveness and the practical usability of the meta-language.We evaluate our work by assessing whether Statix (i) has a clear and clean underlying theory (principled); (ii) can handle a broad range of common language features (expressive); (iii) is declarative, but realizable by practical algorithms and tools (executable); (iv) is factored into language-specific and language-independent parts, to maximize reuse (reusable); and (v) can be applied to erroneous programs as well as to correct ones (resilient). We conclude that our approach is sufficient to express and interpret common name binding and type system features. The approach scales to the full surface syntax of real-world programming languages. As such the meta-language fulfills criteria (i) to (iv) well, although we do identify potential improvements. Criterion (v) is only minimally met and remains an important open challenge.Our work shows that high-level specification of surface language name binding features using a meta-language approach is feasible and useful. It allows easier specification of complete languages, and supports reusable practical implementations for those languages. The following three topics are important areas of future research. The first is to develop abstractions for language features that are currently hard or cumbersome to specify in Statix. The second is to improve the integration of Statix in development environments. This requires better handling of erroneous programs and improved error reporting. It also requires developing program representations that make static program information accessible for program transformation and compilation. The third is to develop approaches for code completion, program repair, and program generation based on Statix specifications. Further research on these topics would make this meta-language approach even more widely applicable.},
+  keywords = {Static Semantics, Meta-languages, Name Binding, Type Systems, Language Specification, Programming Languages},
+  author   = {{van Antwerpen}, H.},
+  year     = {2024},
+  doi      = {10.4233/uuid:4bf44aa1-779c-4a96-8c55-5e1b54e16119},
+  language = {English},
+  isbn     = {978‑94‑6384‑704‑9},
+  type     = {Dissertation (TU Delft)},
+  school   = {Delft University of Technology}
+}

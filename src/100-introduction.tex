@@ -15,7 +15,7 @@ On the other hand, other approaches to name binding have been studied. Name bind
 
 HOAS and Scope Graphs differ fundamentally in how they treat binding and unification. Since HOAS follows the syntax of simply typed lambda calculus, names are bound only by constructing a lambda abstraction while properties are asserted via implication. In return, users get capture-avoiding substitution, lexical scoping and higher order unification for free. While scope graphs provide strong support for modular and non-lexical scoping, they do not natively provide higher-order pattern unification, which is central to dependently typed systems.
 
-This friction motivates the central question of this thesis: can higher-order pattern unification be integrated with a scope-graph-based constraint system in a principled and practical way? Furthermore, how does such an approach compare to higher-order logic programming systems when implementing a dependently typed language?
+This friction motivates the central question of this thesis: can higher-order pattern unification be integrated with a scope-graph-based constraint system in a principled and practical way (RQ1)? Furthermore, how does such an approach compare to higher-order logic programming systems when implementing a dependently typed language (RQ2)?
 
 To address these questions, we design and evaluate a higher-order pattern unification algorithm tailored to a scope-graph-based setting, and analyze its implications for implementing dependently typed languages in Spoofax.
 
@@ -23,8 +23,8 @@ To address these questions, we design and evaluate a higher-order pattern unific
 
 This thesis addresses two research questions and makes the following contributions.
 
-\paragraph{Higher-order pattern unification in scope-graph systems (RQ1).}
+\paragraph{Higher-order pattern unification in scope-graph systems.}
 We design and formalize an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix, demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
 
-\paragraph{Comparison of implementation paradigms for dependent typing (RQ2).}
+\paragraph{Comparison of implementation paradigms for dependent typing.}
 We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems. The analysis examines differences in expressivity and computability, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping. This clarifies the trade-offs between meta-level binding mechanisms and explicit scope representations when implementing practical dependently typed languages.

@@ -6,7 +6,7 @@
 
 % Math
 \usepackage{amsmath}
-
+\usepackage{amssymb}
 
 % References
 \usepackage[hidelinks]{hyperref}
@@ -60,10 +60,10 @@
 % Listings
 \usepackage{microtype}
 \usepackage{listings}           % \lstinline
+
 \lstset{
   breaklines=false,%true,
   basicstyle=\normalsize\ttfamily,
-  backgroundcolor=\color{grammarbg},
 }
 % Special command that allows \- to be used, which causes a keyword
 % to be broken there, with a hypen inserted. E.g. \lstinlineb{Hello\-World}.
@@ -172,4 +172,27 @@
   keepspaces=true,
   showstringspaces=false,
   frame=none
+}
+
+\lstdefinestyle{hoas}{
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  breaklines=true,
+  showstringspaces=false
+}
+
+\lstdefinelanguage{Rust}{
+  keywords={fn, let, mut, pub, impl, trait, struct, enum, match, if, else, loop, while, for, in, return, break, continue, use, mod, crate, super, self, Self, const, static, ref, type, where, as},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={i32, i64, u32, u64, f32, f64, usize, isize, bool, String, str},
+  ndkeywordstyle=\color{teal},
+  identifierstyle=\color{black},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{gray}\ttfamily,
+  stringstyle=\color{orange},
+  morestring=[b]",
 }

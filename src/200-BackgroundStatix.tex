@@ -1,57 +1,181 @@
-\chapter{\label{chap:statix}Background: Statix}
-This chapter will focus on the concepts behind Statix. We also thing it is necessary to offer readers information about Spoofax and its features. It is important to understand where Statix sits in the context of the Spoofax framework to get a better insight into what's possible to do in a typechecker. 
+\chapter{\label{chap:statix}Background}
 
-Spoofax is a framework that allows users to easily implement end-to-end tooling for their programming language. Made primarily for use within Eclipse, Spoofax comes as a plugin. In Spoofax, users start by defining the grammar of the language using SDF3. Later, one can write various pases, such as desugaring steps, IDE services or an interpreter, on the AST with Stratego and typing rules using Statix. 
+% \textbf{Potential story:
+%   \begin{itemize}
+%     \item Why and what dependent types?
+%     \item What is name binding in type checkers
+%           \subitem editor services rely on information about names
+%           \subitem lexical vs non-lexical scoping: a lot of useful featuresw are non lexical
+%     \item Why name binding is particularly challenging in dependent types
+%           \subitem inference requires unification of types/terms
+%           \subitem metavariables are names that don't have the complete binding at creation => mutable, globally visible scope
+%     \item How Statix introduces scope graphs
+%     \item Another way to model name binding: HOAS
+%   \end{itemize}
+% }
 
-\section{Parsing the AST}
-Getting an AST representation of the source code is one of the first things needed to compile or typecheck a language. This process gives meaning to the tokens found in a source code file. In SDF3, the parsing rules are defined declaratively, similarly to BNF notation. You can define context-free sorts with multiple constructors. The constructors can match on code tokens or other sorts. As an example, users might find it helpful to define a sort for expressions and another for types. The parsing starts from a top level sort and will try to match the tokens with the defined constructors. As an example consider the grammar in figure.
- 
-\begin{lstlisting}[style=sdfgrammar, caption={Simple language with Type and Expr sorts}]
-context-free sorts
-  Expr
-  Type 
+In this chapter we will argue about the importance of rigouros type systems, such as dependent type theory. We will also explain the unique binding requirements of this system and how it can be used to provide better editor services. Furthermore, we explain the theory behind two approaches to name binding: scope graphs and higher order abstract syntax.
 
-context-free syntax
-  Expr.Num = Number
-  Expr.Eq = [[Expr] == [Expr]] {left}
-  Expr.Add = [[Expr] + [Expr]] {left}
-  Expr.Var = Name 
-  Expr.Lam = [\[Name] : [Type] -> [Expr]]
-  Expr.App = [[Expr] [Expr]] {right}
-
-  Type.Nat = [nat]
-  Type.Fun = [[Type] -> [Type]]
-context-free priorities
-  {Expr.Num Expr.Var} > Expr.App > Expr.Add > Expr.Eq > Expr.Lam
+A lot of effort has been made towards improving type safety of new languages. The benefits of strong type systems are easy to see: self-documenting code, more bugs prevented at compile time and stronger invariants. The latter is becoming increasingly important. If an identifier has a type, the programmer can make certain assumptions about its value. For example, in Rust, an invariant of reference values is that they can never be dangling. This property is guaranteed at compile time by the borrow checker. Furthermore, lifetime annotations in struct definitions such as:
+\begin{lstlisting}[language=Rust]
+struct A<'a> {
+  pub s: string<'a>
+}
 \end{lstlisting}
-
-The AST is in \textbf{ATerm} format and will contain the constructors that were matched. For instance, the program \lstinlineb{\x : Int ->  x + 1 }, will produce the AST:
+guarantee that the heap-allocated string values lives as long as the struct it belongs to, making it safe to acces. Another invariant programmers might be familiar with are (non)-nullable values. Languages like TypeScript and Kotlin can perform type narrowing after the value is asserted as null or non-null. The type of a nullable value \texttt{x: int?}, can be narrowed as so:
 \begin{lstlisting}
-Expr.Lam("x", Type.Nat(), Expr.Add(Expr.Var("x"), Number(1)))
+if x != null {
+  // x guaranteed to be int and not null here
+}
+\end{lstlisting}
+The compiler's ability to check invariants strongly correlates with the safety of the code. However, in most conventional type systems, the set of invariants that can be checked is fixed by the compiler's implementation and users have no way to extend it.
+
+\section{Dependent Types}
+Dependent type systems were designed to address this challenge. In a dependently typed language, types may depend on values, enabling programmers to express and verify arbitrary invariants within the type system itself.
+
+\subsection{Function types and Pi types.}
+In the simply typed calculus, a function type $A \to B$ describes functions that
+take an argument of type $A$ and return a result of type $B$. The return type
+$B$ is fixed and cannot refer to the value of the argument. A \emph{dependent
+  function type} (or \emph{Pi type}), written $\Pi\,(x : A).\, B(x)$ generalises this: the return type $B(x)$ may mention the argument $x$. When the return type does not depend on the argument, the Pi type reduces to an ordinary function type $A \to B$.
+
+As a first example, consider a function \texttt{default} : $\Pi\,(A : \text{Type}).\, A$
+that returns a default value for a given type. The return type $A$ refers to the
+value of the first argument. This cannot be expressed with an ordinary
+function type.
+
+\subsection{Implicit arguments.}
+In practice, many type arguments can be inferred from context. Most dependently
+typed languages allow such arguments to be marked as \emph{implicit}, meaning
+they are automatically filled in by the type checker during unification. For
+example, the identity function can be given the type
+$\text{id} : \{A : \text{Type}\} \to A \to A$, where the braces indicate that
+$A$ is implicit. The caller writes $\text{id}\; 42$ rather than
+$\text{id}\; \mathbb{N}\; 42$, and the type checker infers that $A = \mathbb{N}$.
+
+\subsection{Data types and constructors.}
+Dependently typed languages support \emph{indexed} data types, whose type
+signature carries information about the values it classifies. A data type may
+have \emph{parameters}, which are fixed across all constructors, and
+\emph{indices}, which may vary between constructors. This distinction is
+important: indices allow data types to be indexed by values, which is the key
+mechanism for encoding invariants in the type system.
+
+It is often easier to think of types as propositions that say something about a class of values. If we can provide a value for a type, the type checker will assert the invariant described in the type. As an example, we can design an invariant which guarantees that a value is non-null. We will use the Option type to represent \textit{null} as it is the idiomatic way to represent nullable values in pure languages.
+\begin{lstlisting}[caption={Non-null invariant written in Agda}]
+data Option (A : Set) : Set where
+  null : Option A
+  some : A → Option A
+
+-- Non-null invariant expressed as a type over Option values
+-- Only values constructed with some will make this proof true
+data IsNonNull {A : Set} : Option A → Set where
+  is-non-null : ∀ {x} → IsNonNull (some x)
+
+-- the caller must provide a proof of non-nullity
+unwrap : {A : Set} → (m : Option A) → IsNonNull m → A
+unwrap (some x) is-non-null = x
+
+is-non-null :: IsNonNull (some 42) -- will compile
+is-non-null :: IsNonNull null -- won't compile because the type has 0 inhabitants
 \end{lstlisting}
 
-\section{Unification}
-This section will explain what unification is, where it is used and the different types of algorithms.
+In this example, the non null invariant is required by the \texttt{unwrap} function. The type checker will accept the expression \texttt{unwrap x proof} in two cases: a) x is constructed with \texttt{some} at the call site or b) we receive the proof that x is not null from another function. 
 
-In general unification is concerned with filling in missing parts of terms in order to make them equal. Unification wants to know if two terms A and B are equal, and if not, if they can be made equal by filling in their free variables.
-For example, consider the unification problem $f(x, y) \equiv f(1, g(2))$ (assume $f$ and $g$ are known functions). The algorithm should find the substitutions $x \mapsto 1, y \mapsto g(2)$. 
+The most important feature of dependent types, that allows us to use values (or any terms for that matter) at compile time is the particular name binding structure. In the previouse example, \texttt{unwrap} can use the \textbf{value} of its first argument in the type signature, by binding it to the name $m$.
 
-Common requirements for a unification algorithm are decidability and the generality of the solution. Decidability is a natural requirement, so it is interesting to discuss what generality of the solution means. We would prefer if our algorithm will find the substitution that doesn't constraint the term more than it needs to. Consider the problem of unifying the terms $f(x, y) \equiv f(y, x)$. A possible solution is the substitution $x \mapsto 1, y \mapsto 1$. However this solution constraints the free variables too much. The most general solution to this problem is $x \mapsto y$. Given the difficulty of unification, one may wonder if a decidable algorithm exists for the most general unifier (MGU). To answer this, we must make a distinction on the type of terms we will substitute for the free variables. The biggest distinction is between so called first order and higher order terms. First order terms are variables, constants and in general terms that dont bind new variables. First order unification is decidable and admits the most general unifier.
+\section{Name binding}
+This section will give an overview of name bindings in the context of static analysis. We will also discuss the relation between scoping and name binding.
 
-\section{Statix}
-Statix is used by Spoofax uses to perform typechecking of the user's language. Statix is based on terms and unification. The main concepts of Statix are:
-\begin{itemize}
-  \item \textbf{Terms}: This is the smallest abstraction that Statix provides. Statix terms can be unified using the first order unification algorithm built into the language.
-  \item \textbf{Rules}: These are similar to predicates in Prolog. Given an instantiation of a rule, Statix will try to prove it. Rules can pattern match on their arguments, and in each case will require some constraint(s) to hold in order for them to be proven.
-  \item \textbf{Constraints}: Constraints are problems that Statix will work on involving term and scope graph operations. Possible constraints are (dis)equality, conjunction, disjunction and scope graph constraints. For example, a rule can require that two terms are equal, or that a new scope is added to the scope graph.
-\end{itemize}
+In the literature, there are many types of name binding, but this work will focus on static name binding (binding that happens at compile time). In static analysis of programs it is common to infer information about a name when it is first introduced (\textit{declared}), while later \textit{refferences} of the identifier can re-use the collected information or refine it \autocite{4bf44aa1779c4a968c555e1b54e16119}. In a well formed program all refferences must be \textit{bound} to a single declaration. However, in many programming languages used in practice, it is not always obvious how to map a refference to its declaration. This process is known as \textit{name resolution} \autocite{4bf44aa1779c4a968c555e1b54e16119}.
 
-\todo{You can introduce variables in the rule head, but at runtime it will receive an actual value. Variables introduced as existential will be filled by unification}
-Terms in Statix follow a sorted logic. The user can declare new sorts and constructors for objects in the sort. This design differs from $\lambda$-Prolog as you cannot create lambda terms. They are not first class citizens in Statix. Moreover, Statix does not perform function application on terms.
+A common way to represent the result of name resolution is through \emph{def-use chains}, which link each reference directly to its corresponding declaration \autocite{aho_compilers_2006}. Once established, def-use chains form the backbone of many compiler analyses and IDE services such as go-to-definition, find references, and rename refactoring.
 
-Rules are the Statix equivalent of predicates in $\lambda$-Prolog. In $\lambda$-Prolog, the convention is that the output of a predicate is stored in its last argument. The caller will provide a fresh, unfilled variable to the predicate. When the predicate is proven, the variable will be filled with a value through unification. This is also the case in Statix. However, Statix also offers functional rules, which mimic functions in functional programming languages. Functional rules are converted by Statix to regular rules as syntactic sugar.
-When simplyfying constraints, Statix doesn't backtrack. This is different to $\lambda$Prolog implementations such as Elpi(\autocite ). Statix will try at most one rule for each constraint. The appropriate rule is selected by applying the following heuristics in order: 1. Rules with a smaller domain are preferred over rules with a larger domain. 2. When pairwise comparing rules, the rule for which, in left-to-right order, a more specific pattern is encountered first is preferred over the other. For all the cases where the heuristic can't decide, Statix emits compile time errors.
+The rules that govern name resolution are determined by the scoping discipline of the language. The most common discipline is \emph{lexical scoping} (also known as \emph{static scoping}), where the scope of a name is determined by its position in the AST. In a lexically scoped language, an inner scope may \emph{shadow} a declaration from an enclosing scope, and resolution proceeds outward from the reference site until a matching declaration is found. Lexical scoping was popularised by Algol 60 and is used by the majority of modern programming languages \autocite{scott_programming_2015}. However, many practical languages also feature \emph{non-lexical} scoping mechanisms that cannot be explained solely by the AST hierarchy. Examples include module imports, class inheritance, qualified names, and forward-references. Non-lexical scoping increases the complexity of typechecking. Since the scoping rules don't follow the hierarchy of the AST neither can the type checker. As an example, to typecheck forward references, the type checker cannot simply follow the AST, as it will encounter references of names that have not yet been declared. To account for this it should collect and process all available declarations within a scope before proceeding. It follows that scoping and name resolution are tightly coupled with the operational semantics of a type checker. In most languages, non-lexical scoping is handled in an ad-hoc manner embedded in the type checker and other static analyses \autocite{neron_extensible_2015}.
 
-Although the Statix language does not distinguish between variables in rule heads and existentials, the solver treats those quite differently. On rule application, occurrences of variables from rule heads in the body of the rule are substituted by the actual arguments. For example, in a specification containing the rule rule(x) :- x == ()., simplifying the constraint rule(()) will result in the residual constraint () == (), which trivially holds. However, when simplifying the constraint {x} x == (), simplifying will generate a fresh unification variable (say ?x-1), and substitute that in the constraint, yielding ?x-1 == (). Solving that will create a new mapping ?x-1 |-> () in the unifier of the solver result.
+\section{Name binding in dependent types}
+A dependently typed language adds subtle complexities to the name binding and resolution process. One radical difference to a simply typed language is the ability to bind values in types. When performing an application $f \ x$, the value of $x$ might be bound by $f$'s binder and by $f$'s type. 
+
+Another challenge of name binding comes with inference. In dependently typed languages inference is complex and requires higher-order unification. Most implementations will create "holes" (metavariables) where a term must be inferred. Here, term refers to either a value or a type, since in this type system we can infer both. Readers might be familiar with Hindley-Milner type systems, where all types are inferrable. Such languages will insert a metavariable in place of the type of a definition/variable. When performing static analysis we are able to either infer or check a term, but metavariables have a different lifecycle. When a metavariable is defined, there is no information associated with them (perhaps only their type). Later use of terms with metavariables will generate unification constraints, which in turn allow the typechecker to set a \textbf{value} for the "hole". 
+Language implementations view type checking and constraint solving as separate systems. The interface between the two components can look as follows:
+\begin{enumerate}
+  \item The solver can create new metavariables (by itself or when requested)
+  \item Typechecker can publish a constraint for unifying two terms
+  \item Typechecker can give a term with "holes" and receive back a term with metavariables substituted for their current solutions (if they exist) from the solver
+\end{enumerate}
+Point 2. is perhaps vague. Does the type checker expect a response from the solver or does it just move on? This question motivates the existence of another approach for unification called \textit{dynamic pattern unification}. The dynamic approach distinguishes between 3 states for constraints: solvable, impossible to solve or delayed. The latter suggests that constraints that come later might help us solve constraints we accumulated earlier. Furthermore, unification becomes decoupled from the AST and requires a form of non-lexical scoping. We need to capture the required context (bindings, telescopes) for a constraint and store it.
+
+As highlighted by point 3, the type checker needs to know information about a metavariable. We make a distinction between the scope in which a metavariable is created and the scope in which it is solved. If we strictly follow lexical scoping, the scope in which we query might not be a descendant of the scope in which we instantiate the metavariable. Therefore, metavariables and their solutions need to live in a global, mutable scope.
+
 
 \section{Scope Graphs}
+
+Modern programming languages combine multiple scoping mechanisms, including lexical scoping induced by syntactic structure and non-lexical scoping arising from constructs such as imports, inheritance, or other visibility relations. Traditional formulations of name resolution, for instance based on hierarchical symbol tables, are well-suited for purely lexical scoping but become increasingly ad hoc when extended to accommodate such non-lexical mechanisms. Scope graphs provide a uniform representation in which both forms of scoping are modeled within a single formalism, by representing scopes as nodes in a graph and scoping relations as labeled edges.
+
+Formally, a scope graph is a directed labeled graph $G = (S, E, D)$, where $S$ is a set of scopes, $D$ is a set of declarations, and $E \subseteq S \times L \times S$ is a set of labeled edges between scopes, for some set of labels $L$. Each declaration $d \in D$ is associated with a scope in $S$ and introduces a name. References to names occur in scopes and must be resolved to declarations. Lexical scoping is typically represented by edges corresponding to syntactic nesting, whereas non-lexical scoping mechanisms, such as imports or inheritance, are represented in the same graph as additional labeled edges \autocite{van_antwerpen_scopes_2018}. This representation abstracts from the concrete language constructs and instead captures name binding in terms of reachability in the graph.
+
+Name resolution is defined as a path search problem over the scope graph. Given a reference to a name $x$ in a scope $s \in S$, resolution amounts to finding a declaration $d$ of $x$ in some scope $s'$ such that there exists a path from $s$ to $s'$ that satisfies a given resolution policy. Such a policy constrains the admissible sequences of edge labels and typically induces a preference ordering over paths in order to model shadowing. In particular, declarations that are reachable via preferred paths (for example, shorter paths or paths following specific edge labels) take precedence over others, ensuring that more local declarations shadow those that are more distant in the graph.
+
+In \textit{Statix}, scope graphs are integrated into a constraint-based framework in which both the construction of the graph and the resolution of names are expressed declaratively. Rather than constructing the scope graph procedurally, one specifies constraints that introduce scopes, declarations, and edges, as well as constraints that require certain references to resolve to declarations. Concretely, scope construction is expressed using constraints that generate fresh scopes, introduce declarations of names in scopes, and relate scopes via labeled edges. Name resolution is expressed by constraints of the form $\texttt{resolve}(s, x) = d$, requiring that the reference to $x$ in scope $s$ resolves to declaration $d$ according to the resolution policy induced by the scope graph.
+
+An advantage of Statix is that scope graph constraints interact with other semantic constraints, such as equality or typing constraints. For example, resolving a reference yields a declaration whose associated semantic information, such as a type, may be subject to further constraints. As a result, name resolution is not treated as a separate phase but is instead integrated into a unified constraint system.
+
+Constraint solving proceeds by incrementally refining a partial scope graph and a set of constraints. Resolution constraints are solved only when the relevant portion of the scope graph is sufficiently closed to guarantee a stable result (i.e. Statix knows we won't extend that scope in the future). Otherwise, they are suspended. As additional scopes, edges, and declarations are introduced, suspended resolution constraints may become solvable. Therefore, name resolution is specified as a global consistency condition rather than an eager operation. Moreover, this semantics allow a typechecker to deal with non-lexical scoping such as forward refferences. We can issue a constraint that a reference should be resolvable before we create a declaration for that name. The constraint should be delayed until we encounter the declaration.
+
+\subsection{Statix}
+
+Statix is a constraint-based language used in the Spoofax language workbench for
+specifying type systems and name resolution declaratively. It builds on scope graphs to provide a unified framework in which both binding structure and typing constraints are expressed as logical constraints.
+
+In Statix, programs are analyzed by generating and solving constraints over terms and scope graphs. Terms represent syntactic entities of the object language, while constraints capture relationships between them, such as equality, typing requirements, or name resolution conditions. Constraint solving proceeds incrementally, refining both the term structure and the scope graph until a consistent solution is found.
+
+The principal design choice in Statix is that terms are first-order: they are constructed from user-defined constructors and variables, but do not include higher-order constructs such as lambda abstractions. As a result, binding structure is not represented within terms themselves, but externally via scope graphs. Likewise, unification in Statix is restricted to first-order terms.
+
+This separation enables flexible modeling of complex scoping mechanisms, including non-lexical scoping. 
+
+\subsection{Another way to model name binding: Higher-Order Abstract Syntax}
+
+An alternative approach to modeling name binding is given by Higher-Order Abstract Syntax (HOAS), in which binding constructs of an object language are represented using the binding mechanisms of a meta-language (host language). Instead of representing scopes, declarations, and references explicitly, HOAS encodes binding structure directly using functions of the meta-language.
+
+The key idea is to represent object-language binders as meta-level functions. A bound variable is represented by a meta-level variable introduced by a function argument, and occurrences of that variable are represented by the same meta-level variable. As a result, substitution and $\alpha$-equivalence are handled implicitly by the meta-language, without requiring explicit definitions of these operations.
+
+For example, a $\lambda$-abstraction can be represented as a meta-level function:
+
+\begin{lstlisting}[style=hoas]
+lam (x \ body)
+\end{lstlisting}
+
+Here, $x$ is a meta-level variable representing the bound variable, and $body$ is a term in
+which $x$ may occur. Application is represented as:
+
+\begin{lstlisting}[style=hoas]
+app (lam (x \ body)) arg
+\end{lstlisting}
+
+HOAS can be embedded in a variety of meta-languages, such as Agda or Coq, where binders are represented using higher-order functions.
+However, these systems rely on an intensional (or weak) function space, in which
+functions are treated as opaque values that cannot be inspected or decomposed by
+pattern matching.
+As a result, while HOAS representations can be constructed, it is difficult to
+analyze or invert them, since the structure of a function cannot be recovered by
+pattern matching. For this purpose, logic programming languages are easier to use with HOAS. Implementations such as ELPI \autocite{dunchev_elpi_2015} allow users to inspect functions by going under binders. The semantics of a logic programming language are slightly different. Programs are expressed as relations rather than functions, and evaluation proceeds by attempting to prove goals via unification and backtracking. ELPI uses higher-order pattern unification on meta-level representations of object-language terms, including those containing binders. Unification is restricted to the higher-order pattern fragment, where free variables may only be applied to distinct bound variables, to preserve decidability.
+
+A typical use case in ELPI is the representation of typing rules. For example, the typing rule for lambda abstraction can be encoded as:
+
+\begin{lstlisting}[style=hoas]
+check (lam Body) (arrow A B) :-
+  (pi x \ type_of x A => check (Body x) B).
+\end{lstlisting}
+
+In this encoding, $x$ is introduced as a fresh meta-level variable. The implication operator \texttt{=>} extends the context with the assumption that $x$ has type $A$ when checking the body. The meta-language ensures that $x$ is correctly scoped, and that occurrences of $x$ in $Body$ refer to the same entity.
+
+Similarly, application can be expressed as:
+
+
+\begin{lstlisting}[style=hoas]
+infer (app F X) B :-
+  infer F (arrow A B),
+  check X A.
+\end{lstlisting}
+
+This representation contrasts with first-order encodings, where explicit environments or name management must be introduced. In HOAS, these aspects are delegated to the meta-language. The difference in how binding structures can be inspected and manipulated influences the design of type checkers and unification algorithms.
