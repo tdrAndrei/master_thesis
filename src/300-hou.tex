@@ -1,0 +1,107 @@
+\chapter{\label{chap:hou}Higher order unification}
+
+In this chapter we present the theory behind higher-order unification (HOU) as it is used inside the elaborator of a dependently typed language. We first motivate why a usable dependent type system cannot avoid inference, and why inference in turn forces us to solve unification problems over open terms that may contain unknowns under binders. We then survey the cases that arise during type checking which give rise to such problems, characterize their general shape in terms of \emph{rigid-rigid}, \emph{flex-rigid}, and \emph{flex-flex} constraints, and explain why metavariable solutions must be treated as functions over a context. Finally, we describe Miller's \emph{pattern fragment} as the decidable, well-behaved subset of \acs{HOU}, and discuss strategies for handling constraints that fall outside the fragment.
+
+\section{Motivation for having HOU in the language}
+With dependent types users end up writing very complex types in places where it is not strictly needed. Inference is very powerful in this type system and it is crucial for a good user experience. Inference is triggered via underscores \texttt{\_}, which can be inserted by the user or the elaborator component. An \texttt{\_} is an unfilled term, which we should be able to complete from constraints that we encounter in type checking.
+
+Concretely, every underscore is replaced during elaboration by a fresh \emph{metavariable} \texttt{?M}, and type checking proceeds with the term that contains it. Whenever a typing rule reduces to checking that two open terms must be equal, those metavariables become unknowns in a \emph{unification problem}. For instance, given the polymorphic identity
+\[
+  \mathrm{id} : (A : \text{Type}) \to A \to A,
+\]
+a user that does not want to spell out the type argument writes $\mathrm{id}\;\_\;42$. The elaborator replaces the underscore by a fresh metavariable, obtaining $\mathrm{id}\;?M\;42$, and the typing rule for application generates the constraint $?M \doteq \mathbb{N}$. A solver that returns $?M := \mathbb{N}$ then completes the term automatically.
+
+Crucially, the constraints we encounter are not always between closed first-order terms. Because types may depend on values, a metavariable can occur in a position where its solution must mention bound variables introduced by surrounding $\lambda$- or $\Pi$-binders. The unknown therefore stands for a \emph{function}, and the corresponding unification problem is higher-order. The language must consequently be equipped with a higher-order unification (HOU) procedure to drive inference.
+
+\section{Cases in which type checking requires HOU}
+In \autocite{martinlof1984intuitionistic}, Martin-L{\"o}f introduced the equality type with a single element that will only type check if the arguments to the equality type are definitionally equal. In the following section, we will discuss how equality requires unification using Agda. Agda is well suited for our examples because its elaborator represents missing information using metavariables and solves the resulting constraints through higher-order pattern unification primarily. The process is also relatively transparent, as users can inspect unresolved metavariables and the constraints associated with them and even interact (\autocite{norell2009dependently}) with them by asking the language to infer values one at a time.
+
+
+In Agda the equality type is written as $a \equiv b$, with its sole inhabitant being the reflexivity proof $\mathrm{refl} : (A : \text{Type})\,(x : A) \to x \equiv x$. Suppose the user is constructing a proof whose expected type they leave partially open by writing an underscore on one side:
+\[
+  \mathrm{refl}\;\mathbb{N}\;42 \;:\; f\;\_ \;\equiv\; f\;42.
+\]
+The underscore is elaborated to a fresh metavariable $?M$, giving the expected type $f\;?M \equiv f\;42$. The typing rule for $\mathrm{refl}$ demands that both sides of the equation be definitionally equal, which becomes the unification problem $f\;?M \doteq f\;42$. Decomposing on the rigid head $f$ yields another constraint $?M \doteq 42$, which is immediately solvable.
+
+A more revealing example arises as soon as an underscore is written under a binder. Consider a vector lookup function whose return type is left to inference:
+\begin{lstlisting}[caption={Higher-order constraint arising from an underscore under a binder}]
+lookup : (A : Set) -> (n : Nat) -> Vec A n -> (i : Fin n) -> _
+lookup A n xs i = ...
+\end{lstlisting}
+The trailing underscore appears in the scope of \texttt{A}, \texttt{n}, and \texttt{i}, so the elaborator must introduce a metavariable $?M$ whose telescope contains those variables. When the body of \texttt{lookup} is checked and found to return a value of type $A$, this produces a constraint of the shape $?M\;[A\;n\;\mathit{xs}\;i] \doteq A$. The constraint cannot be solved by a closed term since it needs to use $A$. Constraints where a metavariable is in the head position and needs bound variables in its solution are the higher-order problems that HOU handles. 
+
+\section{Metavariable solutions are functions}
+The higher order problems require metavariables to be able to use their context. In the literature there are 2 ways to view metavariables: closures or lambda abstractions. Metavariable closures \autocite{nanevski2008contextual} are used to represent an occurrence of the metavariable, and consists of the metavariable along with a suspended substitution from the context in which it was created to the context in which it occurs. The lambda abstraction representation is slightly easier to reason about and does not introduce additional terms in the language. In this form, metavariables are always functions and upon creation they are immediately applied to the distinct bound variables in scope. Therefore, a metavariable in context $?M\;[A\;n\;\mathit{xs}\;i]$ becomes $?M\;A\;n\;\mathit{xs}\;i$. This is the representation as introduced by \autocite{miller_logic_1991} and will be used in this chapter.
+
+Miller also formalized in \autocite{miller_logic_1991} the three cases of possible unification problems: rigid-rigid, flex-rigid and flex-flex.
+To make this precise, we fix the convention that every term is written in \emph{spine form} $h\;\vec{e}$, where the \emph{head} $h$ is either a constant, a bound variable, or a metavariable, and $\vec{e}$ is a (possibly empty) sequence of arguments. A head is \emph{rigid} when it is a constant or bound variable (or in general cannot be changed by a metavariable being solved), and \emph{flex} when it is a metavariable. Each metavariable $?M$ is introduced in a typing context $\Gamma = x_1 : A_1, \dots, x_n : A_n$ and carries a \emph{telescope} declaring the variables it may mention. Its solution is therefore a closed term of type $\Pi\,\vec{x : A}.\,B$ that is applied to some spine of arguments at every occurrence. From this point on we identify a metavariable with the function it represents.
+
+A unification problem has the form $\Gamma \vdash t_1 \doteq t_2$. The three cases that arise are classified by the heads of the two sides:
+
+\paragraph{Rigid-rigid.} Both sides have a rigid head. The constraint is solvable if and only if the heads are the same and their argument spines are unifiable. We write this as the standard decomposition rule:
+\begin{mathpar}
+  \inferrule*[Right=rr-decomp]
+    {h = h' \\ \Gamma \vdash e_1 \doteq e_1' \\\\ \cdots \\ \Gamma \vdash e_n \doteq e_n'}
+    {\Gamma \vdash h\;e_1\cdots e_n \;\doteq\; h'\;e_1'\cdots e_n'}
+\end{mathpar}
+If $h \neq h'$, the constraint is unsolvable and the elaborator must report a type error. For example, $\mathrm{cons}\;1\;\mathrm{nil} \doteq \mathrm{cons}\;?M\;\mathrm{nil}$ decomposes to $1 \doteq ?M$ and is solvable by $?M := 1$, whereas $\mathrm{cons}\;1\;\mathrm{nil} \doteq \mathrm{nil}$ fails on a rigid head mismatch.
+
+\paragraph{Flex-rigid.} Exactly one side has a metavariable as its head, $?M\;\vec{e} \doteq t$ with $t$ rigid. The unifier must \emph{invert} the application and find a closed function $\lambda \vec{x}.\,s$ such that substituting it for $?M$ reduces the equation to a tautology. In general inversion is non-trivial because $?M$ may be applied to non-bound variables, multiple occurrences of the same variable, or other metavariables. We will return to this case in the section \cref{section:patternfrag}.
+
+\paragraph{Flex-flex.} Both sides have metavariable heads: $?M\;\vec{e} \doteq ?N\;\vec{e'}$. Such constraints generally admit infinitely many solutions; for example $?M\;x \doteq ?N\;x$ is satisfied by any common refinement of $?M$ and $?N$. Without further information the elaborator cannot commit to one of them, which is the source of the undecidability of general HOU.
+
+\section{Additions to higher order unification and the pattern fragment}
+\label{section:patternfrag}
+Because of flex-flex problems, general HOU is undecidable. Miller discovered that problems in the pattern fragment always have a most general unifier (which is also unique). This gives rise to 2 methods of doing HOU with pattern fragment. If a problem isn't in the pattern fragment, you have the option to immediately fail or delay the problem until further solutions simplify it.
+
+\subsection{The pattern fragment}
+A unification problem $\Gamma \vdash ?M\;\vec{e} \doteq t$ is said to be in the \emph{pattern fragment} when the spine $\vec{e}$ consists of pairwise distinct bound variables (up to $\eta$-expnsion). The same condition is required of every metavariable application appearing in $t$. Miller's central result \autocite{miller_logic_1991} is that within this fragment unification is decidable and, whenever a unifier exists, it is the unique most general one. The corresponding solving rule is direct:
+\begin{mathpar}
+  \inferrule*[Right=pat-flex-rigid]
+    {x_1,\dots,x_n \text{ distinct bound vars} \\\\ \mathrm{FV}(t) \subseteq \{x_1,\dots,x_n\} \\ ?M \notin t}
+    {\Gamma \vdash ?M\;x_1\cdots x_n \;\doteq\; t \;\;\rightsquigarrow\;\; ?M := \lambda x_1\cdots x_n.\,t}
+\end{mathpar}
+The three imposed conditions of the pattern fragment correspond to the obstacles encountered in general HOU:
+\begin{enumerate}
+  \item distinct bound variables make the substitution $[x_i \mapsto x_i]$ trivially invertible
+  \item the free-variable check (sometimes called a \emph{scope check}) ensures the proposed solution does not mention variables outside $?M$'s telescope
+  \item the occurs check ($?M \notin t$) prevents constructing a cyclic solution. 
+\end{enumerate}
+Flex-flex problems within the fragment are handled similarly, by introducing a fresh metavariable defined over the intersection of the two variable lists \autocite{abel_extensions_2018}.
+
+\subsection{Outside the pattern fragment}
+A problem is outside the pattern fragment in cases such as: the spine of a metavariable may contain a non-variable term (e.g.\ $?M\;0$), a repeated variable ($?M\;x\;x$), or an argument whose head is itself an unsolved metavariable. When this happens the elaborator faces two design choices:
+\begin{enumerate}
+  \item \textbf{Eager failure:} Reject the program immediately. This is simple to implement and predictable, but it forces users to supply otherwise inferable terms whenever the constraint generator happens to produce a non-pattern problem.
+  \item \textbf{Postpone:} Suspend the constraint and continue elaboration. Later constraints may instantiate the offending metavariables, and after substitution the suspended problem may fall back into the pattern fragment and become solvable. This \emph{dynamic pattern unification} strategy \autocite{abel_extensions_2018} is the approach taken by elaborators such as those of Agda and Lean.
+\end{enumerate}
+
+As an illustration, $?M\;x\;x \doteq x$ is not in the pattern fragment because of the repeated variable, and it admits the two solutions $?M := \lambda x\,y.\,x$ and $?M := \lambda x\,y.\,y$. Eager failure would reject the program since it is not in pattern fragment. If we postpone, a separate constraint might later force $?M := \lambda x\,y.\,y$ and the suspended problem reduces to $x \doteq x$ and succeeds.
+
+\subsection{Pruning}
+\label{subsec:prunning}
+Pruning is triggered by a flex-rigid problem $?M\,\vec{x} \doteq t$ whose left-hand side is in pattern form, but where the scope condition of \textsc{pat-flex-rigid} fails because $t$ contains a variable that is not in $\vec{x}$. The naive inversion $?M := \lambda \vec{x}.\,t$ would be ill-scoped. However, if the offending variable enters $t$ only through the spine of \emph{another} metavariable $?N$, we can repair the problem by refining $?N$ so that it is no longer allowed to depend on that variable. After the refinement, the variable disappears from $t$ and the original constraint becomes solvable by \textsc{pat-flex-rigid}.
+
+Concretely consider the context $\Gamma = a, b$ with two metavariables
+\[
+  ?M : \mathbb{N} \to \mathbb{N}, \qquad ?N : \mathbb{N} \to \mathbb{N} \to \mathbb{N},
+\]
+where $f : \mathbb{N} \to \mathbb{N}$ is a known constant. Consider the constraint
+\[
+  ?M\,a \;\doteq\; f\,(?N\,a\,b).
+\]
+The spine $[a]$ of $?M$ is a single distinct bound variable, so the pattern check on the left-hand side passes. The right-hand side, however, mentions $b$ via the term $?N\,a\,b$, and $b \notin \{a\}$. Inverting directly would produce $?M := \lambda a.\,f\,(?N\,a\,b)$, but the free occurrence of $b$ escapes $?M$'s telescope and the substitution is ill-formed. The key observation is that $b$ enters $t$ only through $?N$'s second argument. If we forbid $?N$ from depending on its second argument at all, the term $?N\,a\,b$ will no longer mention $b$. We can therefore introduce a fresh metavariable
+\[
+  ?P : \mathbb{N} \to \mathbb{N}
+\]
+and refine $?N$ by the partial solution
+\[
+  ?N \;:=\; \lambda x\,y.\,?P\,x.
+\]
+This makes $?N$ ignore its second argument, and leaves it solvable for when $?P$ gets instantiated. Substituting throughout, $?N\,a\,b$ reduces to $?P\,a$, and the original constraint becomes
+\[
+  ?M\,a \;\doteq\; f\,(?P\,a),
+\]
+which is in the pattern fragment as $\mathrm{FV}(f\,(?P\,a)) = \{a\} \subseteq \{a\}$ and the occurs check holds. We can apply \textsc{pat-flex-rigid} to obtain $?M := \lambda a.\,f\,(?P\,a)$. The pruning of $?N$ was enough to bring the problem back inside Miller's fragment, without committing to a final value for $?P$.
+
+Pruning generalizes to nested metavariable applications and interacts subtly with dependent types. A prune that would make a downstream constraint ill-typed must be rejected rather than performed, and in some cases there is no valid prune at all as shown in \autocite{abel_extensions_2018}. Additionally, in practice pruning works better with postponement, since a successful prune can unblock constraints that drive new prunes or new pattern-fragment solutions in turn.

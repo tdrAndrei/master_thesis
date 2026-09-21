@@ -1,0 +1,292 @@
+\chapter{\label{chap:ScopeGraphs}A comparison of scope graphs and HOAS}
+
+In the preceding chapters, we presented the implementation of our dependently typed language in Statix, which represents binding structure explicitly using scope graphs. This representation is particularly useful for language constructs whose visibility cannot be described solely by the lexical nesting of the abstract syntax tree, such as modules and module openings. However, the explicit representation of binding also introduces implementation work. Operations such as substitution, $\alpha$-renaming, and higher-order unification must operate over a first-order representation of terms while respecting the binding information recorded in the scope graph. This raises the question of how the implementation would differ in a language in which binders and metavariables are primitive concepts.
+
+To investigate this question, we implement the core of the same language in Elpi. Elpi is a dialect of $\lambda$Prolog designed for programs that manipulate syntax containing binders and unification variables \autocite{dunchev_elpi_2015}. It supports higher-order abstract syntax (HOAS), in which binders in the object language are represented by binders in the meta-language \autocite{pfenning_higher-order_nodate}. Consequently, operations such as substitution and $\alpha$-renaming can be delegated to the Elpi runtime.
+
+The purpose of this chapter is not to claim that either representation is universally preferable. Instead, we use the two implementations to identify their respective strengths. HOAS is particularly convenient for the locally scoped binders found in lambda abstractions and dependent function types. Scope graphs, by contrast, provide an explicit approach to name resolution, which is beneficial for modules, imports, qualified references, and other forms of non-lexical scope.
+
+\section{Logic programming in Elpi}
+
+An Elpi program consists of relations defined by logical clauses. A predicate declaration specifies the arguments of a relation and may additionally specify the intended input and output modes of those arguments. For example, the main judgments of our type checker are declared as follows:
+
+\begin{lstlisting}[caption={The principal relations of the Elpi type checker},
+label={lst:elpi-judgements}]
+pred infer i:tm, o:tm, o:tm.
+pred check i:tm, i:tm, o:tm.
+pred whnf i:tm, o:tm.
+pred conv i:tm, i:tm.
+\end{lstlisting}
+
+Similarly to our Statix approach, the judgment \lstinline|infer T T' A| states that the source term \lstinline|T| elaborates to \lstinline|T'| and synthesises type \lstinline|A|. Moreover, \lstinline|check T A T'| states that \lstinline|T| checks against the expected type \lstinline|A| and elaborates to \lstinline|T'|. The separation between source and elaborated terms allows occurrences of \lstinline|hole| in the input to be replaced by Elpi unification variables.
+
+Variables in a clause are implicitly universally quantified. During proof search, Elpi selects a clause whose conclusion unifies with the current goal and recursively attempts to prove the premises of that clause. Unification therefore serves both as a mechanism for pattern matching and as a mechanism for constructing outputs. For instance, the rule for inferring the type of an annotation can be expressed as follows:
+
+\begin{lstlisting}[caption={Type inference for annotations},
+label={lst:elpi-annotation}]
+infer (ann T A) (ann T1 A1) A1 :-
+  check A set A1,
+  check T A1 T1.
+\end{lstlisting}
+
+\noindent The conclusion is first unified with the current inference goal. The first premise checks that the annotation denotes a type, while the second checks the annotated term against that type. Variables such as \lstinline|T1| and \lstinline|A1| are instantiated as the recursive calls elaborate the corresponding subterms.
+
+\paragraph{Generic and existential variables.}
+
+Elpi distinguishes between eigenvariables, introduced by the \lstinline|pi| quantifier, and unification variables, which are existential unknowns. Operationally, a goal of the form
+
+\begin{lstlisting}
+pi x\ Goal
+\end{lstlisting}
+
+\noindent introduces a fresh rigid constant for \lstinline|x| while solving \lstinline|Goal|. This fresh constant cannot later be unified with an arbitrary term. It is therefore suitable for representing an object-language variable while traversing a binder.
+
+The \lstinline|sigma| quantifier instead introduces a fresh local unification variable:
+
+\begin{lstlisting}
+sigma M\ Goal
+\end{lstlisting}
+
+\noindent The position of these quantifiers determines the variables that may occur in a solution. In particular, \lstinline|pi x\ sigma M\ M = x| has a solution because \lstinline|M| is introduced while \lstinline|x| is in scope. In contrast, \lstinline|sigma M\ pi x\ M = x| fails because an existential variable introduced before \lstinline|x| may not later capture it. However, an outer metavariable may depend on a new binder when it is applied to it explicitly:
+
+\begin{lstlisting}
+sigma M\ pi x\ M x = x
+\end{lstlisting}
+
+\noindent In this case, Elpi can solve \lstinline|M| with the function \lstinline|x\ x|. This restriction is essential for our treatment of holes. A metavariable occurring below the binders \lstinline|A| and \lstinline|x| is represented by an application such as \lstinline|M A x|. Its eventual solution may depend on either binder, but cannot refer to a variable that was not in scope when the metavariable was created.
+
+\paragraph{Hypothetical clauses.}
+
+The typing context is represented using hypothetical clauses rather than an explicit list. We introduce the predicate
+
+\begin{lstlisting}
+pred localTy i:tm, o:tm.
+\end{lstlisting}
+
+\noindent where \lstinline|localTy X A| records that \lstinline|X| has type \lstinline|A|. A variable is typed by retrieving the corresponding hypothetical clause:
+
+\begin{lstlisting}[caption={Retrieving the type of a local variable},
+label={lst:elpi-local}]
+infer X X A :-
+  localTy X A.
+\end{lstlisting}
+
+When the checker moves below a binder, it extends the current program temporarily using the \lstinline|==>| connective:
+
+\begin{lstlisting}
+pi x\ localTy x A ==> Goal
+\end{lstlisting}
+
+\noindent The hypothetical fact \lstinline|localTy x A| is available while \lstinline|Goal| is being solved and is removed afterward. The combination of \lstinline|pi| and hypothetical clauses therefore corresponds directly to extending a typing context with a fresh assumption:
+
+\[
+\Gamma, x : A \vdash t : B.
+\]
+
+\noindent The context is managed by the Elpi runtime and follows the lexical structure of the recursive computation, therefore it is not necessary to pass a context parameter explicitly through every typing rule.
+
+\section{Defining the language in HOAS}
+
+Listing~\ref{lst:elpi-syntax} presents the Elpi representation of the core language considered in this chapter.
+
+\begin{lstlisting}[caption={The syntax of the language in Elpi},
+label={lst:elpi-syntax}]
+kind tm type.
+
+type set  tm.
+type eq   tm -> tm -> tm.
+type refl tm -> tm.
+
+type app  tm -> tm -> tm.
+type lam  (tm -> tm) -> tm.
+type arr  tm -> (tm -> tm) -> tm.
+
+type ann  tm -> tm -> tm.
+type hole tm.
+\end{lstlisting}
+
+The constructor \lstinline|set| represents the universe of types. For this language, we use the simplified rule \lstinline|set : set| and omit the universe hierarchy. The constructor \lstinline|app F X | represents object-language application. The constructors \lstinline|lam| and \lstinline|arr| contain meta-level functions and are therefore the two constructors that employ HOAS. An object-language abstraction $\lambda x.t$ is represented as:
+
+\begin{lstlisting}
+lam (x\ T)
+\end{lstlisting}
+
+\noindent while a dependent function type $(x : A) \to B(x)$ is represented as:
+
+\begin{lstlisting}
+arr A (x\ B)
+\end{lstlisting}
+
+There is no separate constructor for bound variables. Occurrences of \lstinline|x| in \lstinline|T| and \lstinline|B| are Elpi variables bound by the surrounding meta-level abstraction. As a result, object-level $\alpha$-equivalence is obtained through meta-level $\alpha$-equivalence.
+
+The remaining constructors are first order. The term \lstinline|ann T A| associates the term \lstinline|T| with the type annotation \lstinline|A|. The term \lstinline|eq L R| denotes the equality type between \lstinline|L| and \lstinline|R|. The constructor \lstinline|refl| is checked against an equality whose two arguments are definitionally equal. Lastly, \lstinline|hole| represents the syntax for a placeholder that is elaborated to a unification variable. Finally, we can write the polymorphic identity function from our object language in Elpi:
+
+\begin{lstlisting}[caption={The polymorphic identity function in HOAS},
+label={lst:elpi-identity}]
+ann
+  (lam (A\ lam (x\ x)))
+  (arr set (A\ arr A (x\ A)))
+\end{lstlisting}
+
+This term is equivalent to:
+
+\[
+\lambda A.
+\lambda x.x
+::
+(A : \mathsf{Set}) \to (x : A) \to A.
+\]
+
+\subsection{Bidirectional type checking}
+
+We implement the language using bidirectional typing. Terms such as lambda abstractions and reflexivity are checked against an expected type, whereas applications and explicitly annotated terms are inferrable. The rule for the universe is immediate:
+
+\begin{lstlisting}
+infer set set set.
+\end{lstlisting}
+
+Dependent function types require the domain to be a type and the codomain to be a type in a context extended with a variable of the domain type:
+
+\begin{lstlisting}[caption={Inference for dependent function types},
+label={lst:elpi-arr}]
+infer (arr A B) (arr A1 B1) set :-
+  check A set A1,
+  pi x\ localTy x A1 ==> check (B x) set (B1 x).
+\end{lstlisting}
+
+\noindent The use of \lstinline|B x| opens the object-language binder by applying the meta-level function \lstinline|B| to the fresh eigenvariable \lstinline|x|. The elaborated codomain is similarly returned as \lstinline|B1 x|. Since \lstinline|x| is passed explicitly to \lstinline|B1|, the elaborated codomain may depend on the bound variable.
+
+The rule for lambda abstractions follows the same pattern:
+
+\begin{lstlisting}[caption={Checking a lambda abstraction},
+label={lst:elpi-lambda-check}]
+check (lam F) Expected (lam G) :-
+  whnf Expected (arr A B),
+  pi x\ localTy x A ==> check (F x) (B x) (G x).
+\end{lstlisting}
+
+\noindent The expected type is first reduced to a dependent function type. The fresh variable \lstinline|x| is then assigned the domain type \lstinline|A| using a hypothetical clause. The body \lstinline|F x| is checked against the instantiated codomain \lstinline|B x|. This rule closely follows the declarative typing rule
+
+\[
+\frac{
+\Gamma, x : A \vdash t : B(x)
+}{
+\Gamma \vdash \lambda x.t : (x : A) \to B(x)
+}.
+\]
+
+\noindent The Elpi representation does not require an explicit freshness side condition. The eigenvariable generated by \lstinline|pi| is fresh by construction, and its scope is limited to the recursive call.
+
+Application infers a dependent function type for the function position, checks the argument against its domain, and instantiates the codomain with the elaborated argument:
+
+\begin{lstlisting}[caption={Inference for dependent application},
+label={lst:elpi-application}]
+infer (app F X) (app F1 X1) Result :-
+  infer F F1 FunctionType,
+  whnf FunctionType (arr A B),
+  check X A X1,
+  Result = B X1.
+\end{lstlisting}
+
+\noindent The assignment \lstinline|Result = B X1| performs substitution at the type level. In the scope graph implementation, obtaining the result type requires an explicit operation that substitutes the argument for the bound variable in the codomain. In the HOAS representation, the same operation is easier to perform via meta-level function application.
+
+\subsection{Substitution and normalisation}
+
+The principal advantage of HOAS becomes particularly clear in the implementation of $\beta$-reduction. In our language, we still require a predicate for converting terms to weak head normal form since the \lstinline|app| constructor allows for terms with $\beta$-redexes. The weak-head reduction of a lambda application can be written as follows:
+
+\begin{lstlisting}[caption={Beta reduction through meta-level application},
+label={lst:elpi-beta}]
+whnf (app F X) R :-
+  whnf F F1,
+  whnf-app F1 X R.
+
+whnf T T.
+
+whnf-app (lam Body) X R :-
+  whnf (Body X) R.
+
+whnf-app F X (app F X).
+\end{lstlisting}
+
+\noindent In the \texttt{whnf-app} rule, \lstinline|Body X| is the result of substituting \lstinline|X| for the variable bound by \lstinline|Body|. The Elpi runtime performs this substitution using meta-level $\beta$-reduction, which is consequently capture avoiding without requiring an explicit traversal of the object-language term (e.g. to freshen bound variables). For example, \lstinline| app (lam (x\ x)) set | reduces by evaluating the meta-level application \lstinline| (x\ x) set | whose result is \lstinline|set|. A body containing nested binders is handled in the same way. The runtime is responsible for renaming meta-level binders when necessary to avoid capture.
+
+By contrast, the scope graph representation keeps binders and references as first-order syntax. Scope graphs determine which declaration a variable occurrence denotes, but they do not themselves perform substitution. Our Statix implementation must therefore define substitution explicitly and preserve the binding relationships of the substituted term. This includes avoiding name capture when a substitution moves a term below a binder.
+
+\subsection{Equality and reflexivity}
+
+The equality constructor is typed by first inferring the type of its left argument and then checking the right one against the same type:
+
+\begin{lstlisting}[caption={Inference for equality types},
+label={lst:elpi-equality}]
+infer (eq L R) (eq L1 R1) set :-
+  infer L L1 A,
+  check R A R1.
+\end{lstlisting}
+
+\noindent The constructor \lstinline|refl| has a single argument $x$, and the resulting type should be $x \equiv x$:
+
+\begin{lstlisting}[caption={Inferring reflexivity},
+label={lst:elpi-refl}]
+infer (refl T) (refl T1) (eq T1 T1) :-
+  infer T T1 _.
+\end{lstlisting}
+
+\noindent Combined with unification and normalization, reflexivity can establish equalities whose two arguments are not initially syntactically identical. A reflexivity proof has a type of the form $x \equiv x$. When this type is unified with an expected equality $z \equiv y$, both $z$ and $y$ must unify with the same term $x$, possibly after normalization. Consequently, reflexivity succeeds whenever the two arguments of the equality are definitionally equal. For example, the following term proves that applying the identity function to a value returns that value:
+
+
+\begin{lstlisting}[caption={A reflexivity proof relying on beta reduction},
+label={lst:elpi-refl-example}]
+ann
+  (lam (A\ lam (x\ refl x)))
+  (arr set (A\ arr A (x\
+    eq
+      (app (ann (lam (y\ y)) (arr A (y\ A)))
+      x)
+    x)))
+\end{lstlisting}
+
+\noindent The expected type of \lstinline|refl x| is annotated as:
+
+\[
+(\lambda y.y)\ x \equiv x.
+\]
+
+\noindent The arguments are not structurally identical. The conversion relation reduces the left-hand side to \lstinline|x|, after which the equality is accepted.
+
+\subsection{Holes and scoped metavariables}
+
+A syntax level occurrence of \lstinline|hole| is elaborated to an Elpi unification variable. The important property is that the unification variable records the binders (eigenvariables) that were in scope at the point where the hole occurred. Take for instance the term
+
+\begin{lstlisting}
+lam (A\ lam (x\ hole))
+\end{lstlisting}
+
+\noindent checked against the type
+
+\begin{lstlisting}
+arr set (A\ arr A (x\ A))
+\end{lstlisting}
+
+\noindent The hole will be elaborated to a metavariable $?M$ that occurs as \lstinline|M A x| inside the body. The arguments express the local context available to its solution. The metavariable may be solved with \lstinline|x|, with a term depending only on \lstinline|A|, or with a closed term, provided that the solution has the expected type. Inside Elpi, the context of a metavariable can be obtained through built-in functions. The \lstinline|names L| function returns a list of all eigenvariables in scope, while \lstinline|prune V L| unifies \texttt{V} with a unification variable that only sees the names in list \texttt{L}. Using these 2 primitives we can construct metavariables from the object language via Elpi's notation. Furthermore, Elpi performs a lot of work for free, regarding the management of metavariables. The higher-order unification algorithm comes with the necessary pattern checks and with the ability to delay constraints that are outside the pattern fragment. This is a considerable advantage to implementing the unification procedure manually.
+
+\section{HOAS as an alternative to scope graphs}
+
+The HOAS implementation demonstrates that a substantial part of the complexity of manipulating binders can be delegated to the meta-language. Nevertheless, it also exposes a limitation: the context managed by \lstinline|pi| and hypothetical clauses is fundamentally lexical and stack structured. A hypothetical declaration is introduced while solving a subgoal and is removed when that subgoal finishes. This behavior matches lambda abstractions and dependent function types closely. A variable introduced by a lambda is visible just in the body of that lambda. However, not every name-binding construct follows this structure. Module systems introduce visibility relations between parts of the program that are not necessarily related in the AST. Opening a module, resolving a qualified name, and forward references require relationships that don't follow the tree structure of the program. While it is possible to encode such relationships in Elpi, for example by passing an explicit environment or by maintaining relations describing modules and their exported declarations, once this is done, the implementation no longer obtains the main simplicity of the hypothetical context. Name resolution becomes a separate user-defined mechanism layered on top of the HOAS representation.
+Consider the program:
+
+\begin{lstlisting}[caption={A non-lexical visibility relation introduced by opening a module},
+label={lst:module-opening}]
+module M {
+def A : Set;
+A = Set;
+}
+
+module N {
+open M;
+def B : Set;
+B = A;
+}
+\end{lstlisting}
+
+The declaration of \lstinline|A| is not a lexical ancestor of its use in module \lstinline|N|. In the scope graph representation, resolving \lstinline|A| follows an import or opening edge from the scope of \lstinline|N| to the body scope of \lstinline|M|. The relationship is represented directly in the graph and can be reused by every reference appearing in \lstinline|N|. In a purely HOAS based implementation, the same effect cannot be obtained by opening an object-language binder. The module declaration and its use occur in different branches of the syntax tree, and the visibility of \lstinline|A| is created by the \lstinline|open| statement rather than by lexical nesting. The implementation must therefore locate the module, retrieve its exported declarations, and make them available while checking the remainder of the module body. Shadowing and qualified access require additional policies around this environment.
+

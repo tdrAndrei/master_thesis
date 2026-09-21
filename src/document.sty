@@ -33,9 +33,12 @@
 \usepackage[dvips]{graphicx}
 \usepackage[dvips]{color}
 \usepackage[dvipsnames]{xcolor}
-
+\usepackage{circuitikz}
 
 % Fonts
+\usepackage[T1]{fontenc}
+\usepackage{inconsolata}
+\newcommand{\codefont}{\fontfamily{zi4}\selectfont}
 \usepackage{xltxtra}
 \usepackage{fontspec}
 \usepackage{xunicode}
@@ -105,6 +108,8 @@
 
 % Inference
 \usepackage{mathpartir}
+\usepackage{framed}
+\def\betared{\Rightarrow_{\beta}}
 
 % Todo's and Notes
 \usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
@@ -130,10 +135,18 @@
 % Bibliography
 \usepackage[
   backend=biber,
-  style=authoryear
-  %style=numeric
+  %style=authoryear
+  style=numeric
 ]{biblatex}
-
+\AtEveryBibitem{%
+  \iffieldundef{doi}
+  {}
+  {%
+    \clearfield{issn}
+    \clearfield{url}%
+    \clearfield{urldate}%
+  }%
+}
 
 % Continuous counter
 \usepackage{xassoccnt}
@@ -182,6 +195,16 @@
   breaklines=true,
   showstringspaces=false
 }
+
+\lstdefinestyle{centered}{
+  basicstyle=\ttfamily\normalsize,
+  breaklines=true,
+  frame=single,
+  xleftmargin=.1\textwidth,
+  xrightmargin=.1\textwidth
+}
+
+\lstset{style=centered}
 
 \lstdefinelanguage{Rust}{
   keywords={fn, let, mut, pub, impl, trait, struct, enum, match, if, else, loop, while, for, in, return, break, continue, use, mod, crate, super, self, Self, const, static, ref, type, where, as},

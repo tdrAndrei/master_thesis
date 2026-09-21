@@ -1,5 +1,24 @@
 % Manual citations here
+@article{dunfield2022bidirectional,
+  author  = {Dunfield, Jana and Krishnaswami, Neel},
+  title   = {Bidirectional Typing},
+  journal = {ACM Computing Surveys},
+  volume  = {54},
+  number  = {5},
+  pages   = {98:1--98:38},
+  year    = {2022},
+  doi     = {10.1145/3450952}
+}
 
+@inproceedings{hurkens1995simplification,
+  title     = {A Simplification of Girard's Paradox},
+  author    = {Hurkens, Antonius J. C.},
+  booktitle = {Typed Lambda Calculi and Applications},
+  pages     = {266--278},
+  year      = {1995},
+  publisher = {Springer},
+  doi       = {10.1007/BFb0014058}
+}
 @inproceedings{neron_extensible_2015,
   author    = {Neron, Pierre and Tolmach, Andrew and Visser, Eelco and Wachsmuth, Guido},
   title     = {A Theory of Name Resolution},
@@ -10,6 +29,45 @@
   year      = {2015},
   publisher = {Springer},
   doi       = {10.1007/978-3-662-46669-8_9}
+}
+
+@inproceedings{demoura2015elaboration,
+  title     = {Elaboration in Dependent Type Theory},
+  author    = {de Moura, Leonardo and Avigad, Jeremy and Kong, Soonho and Roux, Cody},
+  booktitle = {Automated Deduction -- CADE-25},
+  pages     = {14--29},
+  year      = {2015},
+  publisher = {Springer}
+}
+
+@incollection{wadler1995monads,
+  title     = {Monads for Functional Programming},
+  author    = {Wadler, Philip},
+  booktitle = {Advanced Functional Programming},
+  pages     = {24--52},
+  year      = {1995},
+  publisher = {Springer},
+  doi       = {10.1007/3-540-59451-5_2}
+}
+
+@article{rosenblum1992logstructured,
+  author     = {Rosenblum, Mendel and Ousterhout, John K.},
+  title      = {The design and implementation of a log-structured file system},
+  year       = {1992},
+  issue_date = {Feb. 1992},
+  publisher  = {Association for Computing Machinery},
+  address    = {New York, NY, USA},
+  volume     = {10},
+  number     = {1},
+  issn       = {0734-2071},
+  url        = {https://doi.org/10.1145/146941.146943},
+  doi        = {10.1145/146941.146943},
+  abstract   = {This paper presents a new technique for disk storage management called a log-structured file system. A log-structured file system writes all modifications to disk sequentially in a log-like structure, thereby speeding up both file writing and crash recovery. The log is the only structure on disk; it contains indexing information so that files can be read back from the log efficiently. In order to maintain large free areas on disk for fast writing, we divide the log intosegmentsand use a segment cleaner to compress the live information from heavily fragmented segments. We present a series of simulations that demonstrate the efficiency of a simple cleaning policy based on cost and benefit. We have implemented a prototype log-structured file system called Sprite LFS; it outperforms current Unix file systems by an order of magnitude for small-file writes while matching or exceeding Unix performance for reads and large writes. Even when the overhead for cleaning is included, Sprite LFS can use 70\% of the disk bandwidth for writing, whereas Unix file systems typically can use only 5–10\%.},
+  journal    = {ACM Trans. Comput. Syst.},
+  month      = feb,
+  pages      = {26–52},
+  numpages   = {27},
+  keywords   = {Unix, disk storage management, fast crash recovery, file system organization, file system performance, high write performance, log-structured, logging}
 }
 
 @book{aho_compilers_2006,
@@ -30,12 +88,32 @@
   isbn      = {978-0124104099}
 }
 
+@book{martinlof1984intuitionistic,
+  author    = {Martin-L{\"o}f, Per},
+  title     = {Intuitionistic Type Theory},
+  series    = {Studies in Proof Theory},
+  publisher = {Bibliopolis},
+  address   = {Naples},
+  year      = {1984},
+  note      = {Notes by Giovanni Sambin of a series of lectures given in Padua, June 1980}
+}
+
+@article{mazzoli2016typechecking,
+  author      = {Francesco Mazzoli and Andreas Abel},
+  title       = {Type Checking through Unification},
+  journal     = {CoRR},
+  volume      = {abs/1609.09709},
+  year        = {2016},
+  eprint      = {1609.09709},
+  eprinttype  = {arXiv},
+  eprintclass = {cs.PL}
+}
+
 @online{SustrikZeroMQ,
   author = {Martin Sústrik},
   title = {ZeroMQ},
   year = 2012,
   url = {http://aosabook.org/en/zeromq.html},
-  urldate = {2018-02-16}
 }
 
 @article{6898704,
@@ -51,23 +129,35 @@
 }
 
 @article{pfenning_higher-order_nodate,
-  title    = {Higher-Order Abstract Syntax},
-  abstract = {We describe motivation, design, use, and implementation of higher-order abstract syntax as a central representation for programs, formulas, rules, and other syntactic objects in program manipulation and other formal systems where matching and substitution or uniﬁcation are central operations. Higher-order abstract syntax incorporates name binding information in a uniform and language generic way. Thus it acts as a powerful link integrating diverse tools in such formal environments. We have implemented higherorder abstract syntax, a supporting matching and uniﬁcation algorithm, and some clients in Common Lisp in the framework of the Ergo project at Carnegie Mellon University.},
-  author   = {Pfenning, Frank and Elliott, Conal},
-  langid   = {english},
-  file     = {PDF:/Users/tudorandrei/Zotero/storage/YTAEFHB9/Pfenning and Elliott - Higher-Order Abstract Syntax.pdf:application/pdf}
+author = {Pfenning, F. and Elliott, C.},
+title = {Higher-order abstract syntax},
+year = {1988},
+issue_date = {July 1988},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {23},
+number = {7},
+issn = {0362-1340},
+url = {https://doi.org/10.1145/960116.54010},
+doi = {10.1145/960116.54010},
+abstract = {We describe motivation, design, use, and implementation of higher-order abstract syntax as a central representation for programs, formulas, rules, and other syntactic objects in program manipulation and other formal systems where matching and substitution or unification are central operations. Higher-order abstract syntax incorporates name binding information in a uniform and language generic way. Thus it acts as a powerful link integrating diverse tools in such formal environments. We have implemented higher-order abstract syntax, a supporting matching and unification algorithm, and some clients in Common Lisp in the framework of the Ergo project at Carnegie Mellon University.},
+journal = {SIGPLAN Not.},
+month = jun,
+pages = {199–208},
+numpages = {10}
 }
 
 
-@article{reis_curry-howard_nodate,
+@online{reis_curry-howard_nodate,
   title  = {Curry-Howard Correspondence},
   author = {Reis, Giselle},
   langid = {english},
+  url    = {https://web2.qatar.cmu.edu/cs/15317/lectures/04-curryhoward.pdf},
   file   = {PDF:/Users/tudorandrei/Zotero/storage/359HSJGV/Reis - Curry-Howard Correspondence.pdf:application/pdf}
 }
 
 
-@article{johansson_eliminating_nodate,
+@masterthesis{johansson_eliminating_nodate,
   title    = {Eliminating the problems of hidden-lambda insertion},
   abstract = {Agda is a dependently typed functional programming language developed with the aim of making programming with dependent types practical. One highly useful feature of Agda, implicit arguments, allows a user to omit arguments which can be inferred by their relation to other arguments. This thesis aims to document a set of problems with the way implicit arguments are currently handled by Agda’s type checker, and provide a way to resolve them. Three programs are presented as deﬁning examples of the problems, along with derivations pinpointing the source of the problems within the checking process. We conclude that although the problems cannot be resolved by modifying the heuristic central to this problematic type checking process, it is suﬃcient to impose a simple limitation on where implicit arguments may be declared, bound and given. The limitation somewhat restricts how things can be expressed, but we show that general expressiveness is not negatively aﬀected. A small dependently typed calculus called λΞΦ (Xiphi) is deﬁned, and implemented in Haskell. The implementation supports the feasibility of the solution while also indicating shortcomings, which are discussed.},
   author   = {Johansson, Marcus and Lloyd, Jesper},
@@ -88,7 +178,6 @@
   journaltitle = {Computer Languages, Systems \& Structures},
   shortjournal = {Computer Languages, Systems \& Structures},
   author       = {Erdweg, Sebastian and van der Storm, Tijs and Völter, Markus and Tratt, Laurence and Bosman, Remi and Cook, William R. and Gerritsen, Albert and Hulshout, Angelo and Kelly, Steven and Loh, Alex and Konat, Gabriël and Molina, Pedro J. and Palatnik, Martin and Pohjonen, Risto and Schindler, Eugen and Schindler, Klemens and Solmi, Riccardo and Vergu, Vlad and Visser, Eelco and van der Vlist, Kevin and Wachsmuth, Guido and van der Woning, Jimi},
-  urldate      = {2026-03-23},
   date         = {2015-12-01},
   keywords     = {Benchmarks, Domain-specific languages, Language workbenches, Questionnaire language, Survey},
   file         = {Submitted Version:/Users/tudorandrei/Zotero/storage/H5DZQBSF/Erdweg et al. - 2015 - Evaluating and comparing language workbenches Existing results and benchmarks for the future.pdf:application/pdf}
@@ -133,6 +222,36 @@
   series    = {OOPSLA '10}
 }
 
+@article{lambda-tree,
+  author   = {Dale, Miller},
+  title    = {Mechanized metatheory revisited},
+  journal  = {Journal of Automated Reasoning},
+  numpages = {63},
+  volume   = {3},
+  pages    = {625–665},
+  month    = {October},
+  year     = {2019},
+  doi      = {10.1007/s10817-018-9483-3}
+}
+
+@inproceedings{PHOAS,
+  author    = {Chlipala, Adam},
+  title     = {Parametric higher-order abstract syntax for mechanized semantics},
+  year      = {2008},
+  isbn      = {9781595939197},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  url       = {https://doi.org/10.1145/1411204.1411226},
+  doi       = {10.1145/1411204.1411226},
+  abstract  = {We present parametric higher-order abstract syntax (PHOAS), a new approach to formalizing the syntax of programming languages in computer proof assistants based on type theory. Like higher-order abstract syntax (HOAS), PHOAS uses the meta language's binding constructs to represent the object language's binding constructs. Unlike HOAS, PHOAS types are definable in general-purpose type theories that support traditional functional programming, like Coq's Calculus of Inductive Constructions. We walk through how Coq can be used to develop certified, executable program transformations over several statically-typed functional programming languages formalized with PHOAS; that is, each transformation has a machine-checked proof of type preservation and semantic preservation. Our examples include CPS translation and closure conversion for simply-typed lambda calculus, CPS translation for System F, and translation from a language with ML-style pattern matching to a simpler language with no variable-arity binding constructs. By avoiding the syntactic hassle associated with first-order representation techniques, we achieve a very high degree of proof automation.},
+  booktitle = {Proceedings of the 13th ACM SIGPLAN International Conference on Functional Programming},
+  pages     = {143–156},
+  numpages  = {14},
+  keywords  = {compiler verification, dependent types, interactive proof assistants, type-theoretic semantics},
+  location  = {Victoria, BC, Canada},
+  series    = {ICFP '08}
+}
+
 
 @software{noauthor_metaborgministatixhs_2023,
   title     = {metaborg/ministatix.hs},
@@ -140,10 +259,20 @@
   url       = {https://github.com/metaborg/ministatix.hs},
   abstract  = {A playground Statix implementation},
   publisher = {{MetaBorg}},
-  urldate   = {2026-01-09},
   date      = {2023-02-15},
   note      = {original-date: 2019-09-18T08:45:56Z},
   keywords  = {constraint, haskell, solver, specification, statix, type-system}
+}
+
+@inproceedings{poulsen2023monadic,
+  author    = {Casper Bach Poulsen and Aron Zwaan and Paul H{\"u}bner},
+  title     = {A Monadic Framework for Name Resolution in Multi-phased
+               Type Checkers},
+  booktitle = {Proceedings of the 22nd ACM SIGPLAN International Conference
+               on Generative Programming: Concepts and Experiences},
+  pages     = {14--28},
+  year      = {2023},
+  doi       = {10.1145/3624007.3624051}
 }
 
 @article{van_antwerpen_scopes_2018,
@@ -157,7 +286,6 @@
   journaltitle = {Case Studies for Article: Scopes as Types},
   shortjournal = {Proc. {ACM} Program. Lang.},
   author       = {van Antwerpen, Hendrik and Bach Poulsen, Casper and Rouvoet, Arjen and Visser, Eelco},
-  urldate      = {2026-01-09},
   date         = {2018-10-24},
   file         = {Full Text PDF:/Users/tudorandrei/Zotero/storage/CXTMZGQN/van Antwerpen et al. - 2018 - Scopes as types.pdf:application/pdf}
 }
@@ -173,31 +301,32 @@
   pages        = {7268},
   journaltitle = {Logical Methods in Computer Science},
   author       = {Bauer, Andrej and Komel, Anja Petković},
-  urldate      = {2026-01-27},
   date         = {2022-01-19},
   langid       = {english},
   file         = {PDF:/Users/tudorandrei/Zotero/storage/JPADY4YR/Bauer and Komel - 2022 - An extensible equality checking algorithm for dependent type theories.pdf:application/pdf}
 }
 
 @inproceedings{abel_extensions_2018,
-  title    = {Extensions to Miller ’ s Pattern Unification for Dependent Types and Records},
-  url      = {https://www.semanticscholar.org/paper/Extensions-to-Miller-%E2%80%99-s-Pattern-Unification-for-Abel-Pientka/4e2f27124f121694f1656188e5d4726932535bb7},
-  abstract = {Several extensions to Miller’s algorithm for higher-order pattern unification are presented. The main extension is to dependent record types which are decomposed into strong Sigma-types and an extensional unit type. Our algorithm takes type isomorphisms into account to translate unification problems containing dependent record types into those involving only dependent function types. Further extensions such as postponement of constraints, handling of non-linear patterns, and pruning improve the performance of the unifier in practical type reconstruction problems. Our solution takes the form of a inference system that applies small refinements to a constraint set until an inconsistency has surfaced or a (partial) solution been reached. The article describes the individual refinement steps of our algorithm using numerous examples together with the correctness proof of the algorithm.},
-  author   = {Abel, Andreas and Pientka, B.},
-  urldate  = {2026-01-27},
-  date     = {2018},
-  file     = {Full Text PDF:/Users/tudorandrei/Zotero/storage/2WAIBSWJ/Abel and Pientka - 2018 - Extensions to Miller ’ s Pattern Unification for Dependent Types and Records.pdf:application/pdf}
+  author    = {Abel, Andreas and Pientka, Brigitte},
+  title     = {Higher-Order Dynamic Pattern Unification for Dependent Types and Records},
+  booktitle = {Typed Lambda Calculi and Applications},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {6690},
+  pages     = {10--26},
+  year      = {2011},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-642-21691-6_5}
 }
 
 @inproceedings{dunchev_elpi_2015,
   location   = {Suva, Fiji},
   title      = {{ELPI}: fast, Embeddable, λProlog Interpreter},
+  doi        = {10.1007/978-3-662-48899-7_32},
   url        = {https://inria.hal.science/hal-01176856},
   shorttitle = {{ELPI}},
   abstract   = {We present a new interpreter for λProlog that runs consistently faster than the byte code compiled by Teyjus, that is believed to be the best available implementation of λProlog. The key insight is the identification of a fragment of the language, which we call reduction-free fragment (L β λ), that occurs quite naturally in λProlog programs and that admits constant time reduction and unification rules.},
   booktitle  = {{LNCS}},
   author     = {Dunchev, Cvetan and Guidi, Ferruccio and Sacerdoti Coen, Claudio and Tassi, Enrico},
-  urldate    = {2026-02-09},
   date       = {2015-11},
   file       = {HAL PDF Full Text:/Users/tudorandrei/Zotero/storage/WCVQDHGN/Dunchev et al. - 2015 - ELPI fast, Embeddable, λProlog Interpreter.pdf:application/pdf}
 }
@@ -205,7 +334,6 @@
 @online{noauthor_tutorial_nodate,
   title   = {Tutorial on the Elpi programming language},
   url     = {https://lpcic.github.io/coq-elpi/tutorial_elpi_lang.html},
-  urldate = {2026-02-09},
   file    = {Tutorial on the Elpi programming language:/Users/tudorandrei/Zotero/storage/TY5VMLZ9/tutorial_elpi_lang.html:text/html}
 }
 
@@ -213,8 +341,7 @@
   title    = {Dependently Typed Languages in Statix},
   url      = {https://repository.tudelft.nl/record/uuid:7bf3c0f5-71fb-4e08-bcdb-1c873c7e1e63},
   abstract = {Static type systems can greatly enhance the quality of programs, but implementing a type checker for them is challenging and error-prone. The Statix meta-language (part of the Spoofax language workbench) aims to make this task easier by automatically deriving a type checker from a declarative specification of the type system. However, so far Statix has not been used to implement a type system with dependent types, an expressive class of type systems which require evaluation of terms during type checking. {\textless}br/{\textgreater}{\textless}br/{\textgreater}In this thesis, we present a specification of a simple dependently typed language in Statix, and discuss how to extend it with several common features such as inductive data types, universes, and inference of implicit arguments. While we encountered some challenges in the implementation, our conclusion is that Statix is already usable as a tool for implementing dependent types.},
-  author   = {None, None},
-  urldate  = {2026-02-10},
+  author   = {Jonathan, Brouwer},
   date     = {2023},
   langid   = {english},
   file     = {Full Text PDF:/Users/tudorandrei/Zotero/storage/LII45UAN/None - 2023 - Dependently Typed Languages in Statix.pdf:application/pdf}
@@ -225,7 +352,6 @@
   url        = {https://github.com/JonathanBrouwer/master-thesis},
   abstract   = {Contribute to {JonathanBrouwer}/master-thesis development by creating an account on {GitHub}.},
   titleaddon = {{GitHub}},
-  urldate    = {2026-02-17},
   langid     = {english},
   file       = {Snapshot:/Users/tudorandrei/Zotero/storage/H464PDNH/master-thesis.html:text/html}
 }
@@ -241,4 +367,123 @@
   isbn     = {978‑94‑6384‑704‑9},
   type     = {Dissertation (TU Delft)},
   school   = {Delft University of Technology}
+}
+
+@article{miller_logic_1991,
+  author    = {Miller, Dale},
+  title     = {A Logic Programming Language with Lambda-Abstractions, Function Variables, and Simple Unification},
+  journal   = {Journal of Logic and Computation},
+  volume    = {1},
+  number    = {4},
+  pages     = {497--536},
+  year      = {1991},
+  publisher = {Oxford University Press},
+  doi       = {10.1093/logcom/1.4.497}
+}
+
+@article{milner1978theory,
+  author  = {Robin Milner},
+  title   = {A Theory of Type Polymorphism in Programming},
+  journal = {Journal of Computer and System Sciences},
+  volume  = {17},
+  number  = {3},
+  pages   = {348--375},
+  year    = {1978},
+  doi     = {10.1016/0022-0000(78)90014-4}
+}
+
+@inproceedings{damas1982principal,
+  author    = {Lu{\'i}s Damas and Robin Milner},
+  title     = {Principal Type-Schemes for Functional Programs},
+  booktitle = {Proceedings of the 9th ACM SIGPLAN-SIGACT Symposium
+               on Principles of Programming Languages},
+  series    = {POPL '82},
+  pages     = {207--212},
+  publisher = {ACM},
+  year      = {1982},
+  doi       = {10.1145/582153.582176}
+}
+
+@inproceedings{gundry2010typeinference,
+  author    = {Adam Gundry and Conor McBride and James McKinna},
+  title     = {Type Inference in Context},
+  booktitle = {Proceedings of the Third ACM SIGPLAN Workshop on
+               Mathematically Structured Functional Programming},
+  series    = {MSFP '10},
+  pages     = {43--54},
+  publisher = {ACM},
+  year      = {2010},
+  doi       = {10.1145/1863597.1863608}
+}
+
+@article{abel2007oneuniverse,
+  author  = {Andreas Abel and Klaus Aehlig and Peter Dybjer},
+  title   = {Normalization by Evaluation for {Martin-L{\"o}f}
+             Type Theory with One Universe},
+  journal = {Electronic Notes in Theoretical Computer Science},
+  volume  = {173},
+  pages   = {17--39},
+  year    = {2007},
+  doi     = {10.1016/j.entcs.2007.02.025}
+}
+
+@phdthesis{norell2007practical,
+  author = {Ulf Norell},
+  title  = {Towards a Practical Programming Language Based on
+            Dependent Type Theory},
+  school = {Chalmers University of Technology and
+            G{\"o}teborg University},
+  year   = {2007},
+  isbn   = {978-91-7291-996-9}
+}
+
+@incollection{norell2009dependently,
+  author    = {Ulf Norell},
+  title     = {Dependently Typed Programming in {Agda}},
+  booktitle = {Advanced Functional Programming},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {5832},
+  pages     = {230--266},
+  publisher = {Springer},
+  year      = {2009},
+  doi       = {10.1007/978-3-642-04652-0_5}
+}
+
+@article{plotkin1975call,
+  author  = {Gordon D. Plotkin},
+  title   = {Call-by-Name, Call-by-Value and the
+             $\lambda$-Calculus},
+  journal = {Theoretical Computer Science},
+  volume  = {1},
+  number  = {2},
+  pages   = {125--159},
+  year    = {1975},
+  doi     = {10.1016/0304-3975(75)90017-1}
+}
+
+@article{nanevski2008contextual,
+  author    = {Aleksandar Nanevski and Frank Pfenning and
+               Brigitte Pientka},
+  title     = {Contextual Modal Type Theory},
+  journal   = {ACM Transactions on Computational Logic},
+  volume    = {9},
+  number    = {3},
+  articleno = {23},
+  pages     = {1--49},
+  year      = {2008},
+  publisher = {ACM},
+  doi       = {10.1145/1352582.1352591}
+}
+
+@inproceedings{dunfield2013complete,
+  author    = {Jana Dunfield and Neelakantan R. Krishnaswami},
+  title     = {Complete and Easy Bidirectional Typechecking for
+               Higher-Rank Polymorphism},
+  booktitle = {Proceedings of the 18th ACM SIGPLAN International
+               Conference on Functional Programming},
+  series    = {ICFP '13},
+  pages     = {429--442},
+  publisher = {ACM},
+  year      = {2013},
+  doi       = {10.1145/2500365.2500582}
 }

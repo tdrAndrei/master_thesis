@@ -1,0 +1,672 @@
+\chapter{\label{chap:Language}A Language with Dependent Types in Statix}
+
+\section{Language}
+The language implemented in Statix showcases the powerful features of dependent types. The core of the language is a lambda calculus with Pi types and let bindings. Concretely the syntax of our language is defined using the SDF3 syntax:
+\begin{lstlisting}[caption={Necesssary syntax for dependent types}, language=SDF3]
+Expr.Let = [let [ID] = [Expr]; [Expr]]
+Expr.Set = "Set"
+Expr.Var = ID
+Expr.Pi = "(" ID ":" Expr ")" "->" Expr {right}
+Expr.Lam = "\\" ID "." Expr
+Expr.App = Expr Expr {left}  
+Expr.Ann = Expr "::" Expr
+\end{lstlisting}
+
+\noindent The language is formed from lambda abstractions, applications, variables, let bindings, pi types and type annotations. The later are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
+The two routines required for bidirectional typing have the following signatures:
+\begin{lstlisting}
+infer : scope * Expr -> (Expr * Expr)
+check :  scope * Expr * Expr -> Expr
+\end{lstlisting}
+Both infer and check take the current scope and an expression from the object language. \texttt{check} also takes a type as an additional argument. Normally, infer would return the inferred type, while check wouldn't return anything since it would either succeed or fail. The extra \texttt{Expr} comes from the fact that both relations \textit{refine} their input terms: variables get replaced with fresh variables with globally unique names. In chapter \ref{chap:Inference} we will also show how placeholders "\_" are refined to metavariables. Lastly, the following example represents a valid program in our language:
+\begin{lstlisting}
+(\T.\x. x) :: (T : Set) -> (t : T) -> T
+\end{lstlisting}
+We are given an annotated lambda term \texttt{\textbackslash T.\textbackslash x.x} which we can check against \texttt{(T : Set) → (t : T) → T}. The example will type check since we know that T is a type, x has type T and the return types match.
+
+\paragraph{Typing rules.} In the following we will formalize the type checking rules for the language. Since we are working within a bidirectional framework we will use the notation $e \Uparrow T \leadsto e'$ to express that term $e$ is inferred to type $T$ and can be refined to term $e'$. Furthermore, $e \Downarrow T \leadsto e'$ works similarly to the previous rule, but term $e$ is checked against a given type $T$. We also require a symbol to express equality between two terms: $x \equiv y$.
+
+\begin{mathpar}
+  \textbf{Inferred terms} \\
+  \inferrule*[Right=Let]{
+    s \vdash a \Uparrow A \leadsto a' \quad (x_{fresh}, A)::s \vdash b \Uparrow T \leadsto b'
+  }{s \vdash (\mathsf{let}\ x = a;\ b) \Uparrow T \leadsto (\mathsf{let}\ x_{fresh} = a';\ b')}
+
+  \inferrule*[Right=Var]
+  {s \vdash \mathsf{getTy}(s, v) = T \quad s \vdash \mathsf{declaredID}(s, v) = v'}
+  {s \vdash Var(v) \Uparrow T \leadsto Var(v')}
+
+  \inferrule*[Right=Set]
+  {s\vdash}{s \vdash Set \Uparrow Set \leadsto Set}
+
+  \inferrule*[Right=App]
+  {s\vdash f \Uparrow (x : A) \rightarrow B \leadsto f' \quad s \vdash e \Uparrow A' \leadsto e' \quad A' \equiv A \quad [x\mapsto e']s \vdash B \Rightarrow_{\beta} R}
+  {s \vdash f e \Uparrow R \leadsto f' e'}
+
+  \inferrule*[Right=Ann]
+  {s\vdash T \Downarrow Set \leadsto T' \quad s\vdash e \Downarrow T' \leadsto e'}
+  {s \vdash \mathsf{Ann}(e, T) \Uparrow T' \leadsto \mathsf{Ann}(e', T')}
+
+  \\
+  \textbf{Checked terms} \\
+  \inferrule*[Right=Pi]
+  {s \vdash A \Downarrow Set \leadsto A' \quad (x_{fresh}, A')::s \vdash B \Downarrow Set \leadsto B'}
+  {s \vdash (x : A) \rightarrow B \Downarrow Set \leadsto (x_{fresh} : A') \rightarrow B'}
+
+  \inferrule*[Right=Lam]
+  {(x, A)::s \vdash b \Downarrow B \leadsto b'}
+  {s \vdash  \backslash x. b \Downarrow (x : A) \rightarrow B \leadsto x_{fresh}. b'}
+
+  \inferrule*[Right=Unknown]
+  {s \vdash e \Uparrow T' \leadsto e' \quad T' \equiv T}
+  {s \vdash e \Downarrow T \leadsto e'}
+\end{mathpar}
+
+\section{Variables and substitution}
+
+As outlined in chapter \ref{chap:statix}, name binding in dependent types is challenging in the context of type checking. A type checker needs to store a context (information about variables and their \textbf{types}) in addition to performing beta reduction, which requires substitution of \textbf{values}. \par
+A context is represented as an ordered list of associations between names and types:  
+$$ \Delta = (x, A) :: \Delta \hspace{1cm} x : A, A : Set $$
+Entries in the context represent the declaration of a variable, because we can infer a variable's type when it is introduced in the scope. Later references of that variable name should resolve to its declaration entry. In languages with name shadowing a context will carry entries that have the same variable names. Then the question is to which entry should a reference resolve to. In the lexical scoping discipline a reference should resolve to the first entry in the context (added latest) that has the same name as itself. Our implementation will emulate this behavior using scope graphs. \par
+In Statix we will implement lexical scoping by creating descendant scopes that reference their parent via \textbf{P} edges. For example, the following program will generate a scope graph:
+
+\begin{lstlisting}[caption={let introduces a scope}]
+  let x = Set;
+  x :: Set
+\end{lstlisting}
+\label{listing:smalllet}
+
+
+\begin{figure}[!ht]
+\centering
+\resizebox{0.3\textwidth}{!}{%
+\begin{circuitikz}
+\tikzstyle{every node}=[font=\fontsize{9.1pt}{11.8pt}\selectfont]
+\draw  (2.375,11.5) circle (0.875cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont s1} ;
+\draw  (6.875,11.5) circle (0.875cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont s2} ;
+\draw  (1.125,14.125) rectangle (3.5,13.125);
+\node[anchor=center, align=center, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] at (2.3125,13.625) {\fontsize{9.1pt}{11.8pt}\selectfont !hasTy[x, Set]};
+\draw [-{Stealth[scale=1.5]}, ] (6,11.5) -- (3.25,11.5)node[pos=0.5, fill={rgb,255:red,255; green,255; blue,255}, fill opacity=1, text opacity=1, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm]{P};
+\draw [-{Square[scale=1.5]}, ] (2.375,12.375) -- (2.375,13.125);
+\end{circuitikz}
+}%
+\caption{Scope graph of listing \ref{listing:smalllet}}
+\label{fig:my_label}
+\end{figure}
+
+\noindent When the checker infers the type of a variable it will add a \texttt{hasTy} relation to the scope graph. In Statix, later references of the variable should resolve to this entry using the \texttt{getTy} rule:
+
+\begin{mathpar}
+\inferrule*[Right=get-Ty]
+{(x = id), P^* \vdash s \stackrel{hasTy}{\mapsto} (id, ty)  }{\mathsf{getTy}(s, x) = ty}
+\end{mathpar}
+
+\noindent This scope graph query is presented similarly to the "Scopes as types" paper \autocite{van_antwerpen_scopes_2018}, where scope graph queries were formalized. The query starts from scope $s$ and follows paths described by the regular expression \(P^*\) searching a relation labelled \(\mathsf{hasTy}\) for an identifier \(id\) with the condition that it is the same as $x$. If such a declaration is found, the associated type \(ty\) is returned. The same mechanism can account for lexical nesting, shadowing, imports, and other name-resolution features while preserving the connection between variables in the program and their declarations.
+
+\paragraph{Substitutions} Besides keeping track of the typing context, the checker must also store substitutions. Consider a continuation of example \ref{listing:smalllet}, where \texttt{x} is used in a type:
+
+\begin{lstlisting}
+  let x = Set;
+  \a. a :: Set -> (\T. T) x
+\end{lstlisting}
+\label{listing:smalllet2}
+
+\noindent This example is valid in the lambda calculus with pi types, and the checker has to perform type level computation. First it should apply the lambda function \texttt{\textbackslash T. T} on the variable \texttt{x} giving back \texttt{x} again. Then it should substitute \texttt{Set} for \texttt{x}.
+
+To implement reduction we evaluated 3 strategies:
+\begin{enumerate}
+\item Perform substitution eagerly. In program \ref{listing:smalllet2}, after x is type checked, it can be substituted in later expressions for \texttt{Set}. This approach is easy to implement but has the disadvantage of being very inefficient. On the one hand, if the variable is substituted for a more complex expression we would have to type check the whole expression again, wherever the variable appeared. And on the other hand, we need to traverse and change the whole AST to the leaves. Besides being costly, it also interacts negatively with Statix, which can no longer relate errors in the checking process with the location where they happen in the surface code.
+\item Normalization by evaluation (NbE) \autocite{abel2007oneuniverse}, which is a technique that works by converting terms to values and viceversa. NbE is a widely used technique, but fitting it into Statix's first order semantics is challenging. Specifically, lambda terms in the object language are usually converted to a value that holds an actual function in the meta language, in order to have substitution for free using the meta language's semantics. However, Statix has no functions or applications so implementing NbE doesn't solve the problem of manually performing substitution. 
+\item Call by name \autocite{plotkin1975call} semantics, while storing substitutions explicitly in the scope graph. In call by name, we associate a name with a term, but do not perform any operations eagerly. When the name is referenced we query if it has any substitutions which are visible from the current scope. Doing this is Statix requires associating names with closures\footnote{A closure in this context means storing an expression along with a scope. Any free variable in the expression should have a declaration in that scope (or parent scopes)} in the scope graph. 
+\end{enumerate}
+
+The third strategy was chosen as it integrates the best with Statix's semantics. Explicitly storing substitutions avoids unnecessary work, and it has been implemented in other type checkers using Statix \autocite{van_antwerpen_scopes_2018, none_dependently_2023}. In this strategy the type checker stores substitutions via a separate relation \texttt{subst}, which pairs an \texttt{ID} with a \texttt{Closure(scope, Expr)}. 
+$$ \mathsf{subst} : \mathsf{ID} \rightarrow \mathsf{Closure} $$
+The closure might contain free variables that also have \texttt{subst} relations in other scopes. The reduce function will have to recursively evaluate these substitutions. The primitive that we designed in Statix is $\mathsf{lookupSubst}$ defined as follows:
+\[
+\inferrule*[Right=lookup-Subst]
+{(x = id), P^* \vdash s \stackrel{subst}{\mapsto} (id, Closure(s', t)}{lookupSubst(s, x) = Closure(s', t)}
+\]
+
+\paragraph{Name capture.} A very complicated problem to solve which is the source of many bugs in type checking is capture-avoiding substitution. This occurs when we perform substitutions of the form $e[x := t]$, where free variables in $t$ are actually bound in $e$. Consider an example where we perform naive substitution:
+\[
+  \texttt{(\textbackslash x.\textbackslash y.x) y} \betared \texttt{\textbackslash y.y}
+\]
+
+\noindent Syntactically\footnote{In the sense of their surface language representation}, the free $y$ and the one used as binder in the lambda expression have the same name. The term we obtain from naive substitution would be wrong since the $y$ in the body refers to the binder instead of the original free variables. \par
+The free variables cannot change their names, but bound variables can. It is possible to rename a binder when we want to inspect or perform substitution on the body. The previous example should be solved by:
+\[
+  \texttt{(\textbackslash x.\textbackslash y.x) y} \equiv \texttt{(\textbackslash x.\textbackslash z.x) y} \betared \texttt{\textbackslash z.y}
+\]
+
+There are many ways we can solve this in a type checker. Most solutions involve representing variables differently from their syntactic form. This of course involves a pre-processing or conversion of the terms. One of the most known practices is to use De Bruijn indices for bound variables. In this representation, variables that are bound do not use their syntactic name, but rather an integer that expresses the distance\footnote{0 is used for the immediate binder, then 1 for the next and so on} to their bind point. Free variables can use names, but there are ways to convert them to De Bruijn syntax as well.
+
+\[
+  \texttt{(\textbackslash x.\textbackslash y.x) y} \equiv \texttt{(\textbackslash \_.\textbackslash \_.} \hat{1} \texttt{) y} 
+\]
+
+\noindent Here, \(\hat{1}\) refers to the binder one level outside the innermost lambda. Since bound variables no longer depend on names, alpha-equivalent terms have the same representation, and capture-avoiding substitution can be implemented by shifting indices rather than by generating fresh names. However, De Bruijn indices do not interact well with the rest of our implementation. Statix is based on name resolution through scope graphs: names in the syntax are connected to declarations through resolution paths. These names are also the link between the internal analysis and editor services such as go-to-definition and error reporting. If all bound variables are translated to nameless indices before type checking, the checker loses the syntactic names that Statix is designed to reason about. This would make the implementation less natural in Statix and would require an additional mapping between nameless internal terms and the original source-level names.
+
+Instead, our implementation keeps names in the term language, but distinguishes
+between two kinds of variable identifiers. User-written variables are
+represented by their syntactic names \texttt{Loc(string)}. Internally generated variables are represented by a \texttt{Fresh(scope, string)} constructor, which associates the syntactic name with the scope in which it was declared. Thus, the implementation can preserve the source-level names needed by Statix while still avoiding accidental capture during substitution. Two syntactic variables with the same name will be converted to different fresh variables \textbf{iff} their declarations are different (are in different scopes).
+
+Before a term is checked or inferred, the binders relevant to that term are
+freshened. Freshening replaces a syntactic binder name by a fresh internal name,
+and occurrences bound by that binder are made to refer to the fresh name. For
+example, the term
+
+\[
+  \texttt{\textbackslash Loc(y). Loc(y)}
+\]
+
+\noindent will be internally represented as
+
+\[
+  \texttt{\textbackslash Fresh(s, y). Fresh(s, y)}
+\]
+
+\noindent where \texttt{Fresh(s, y)} is a fresh name generated for the binder. The printed name may still be \(\texttt{y}\), but the identity used by the type checker is unique.
+Consequently, a substitution should never insert a term containing a free
+syntactic variable \(\texttt{Loc(y)}\). \texttt{Loc} variables can be captured by binders. In order to resolve the declaration of a \texttt{Loc} variable, the scope graph queries \texttt{lookupSubst} and \texttt{getTy} match the name with the closest lexical match, which should be a \texttt{Fresh} variable already.
+In the Statix code we account for this by adding another case for the two queries:
+\begin{mathpar}
+\inferrule*[Right=get-Ty-Loc]
+{(x = \mathsf{toString}(id)), P^* \vdash s \stackrel{hasTy}{\mapsto} (id, ty)  }{\mathsf{getTy}(s, Loc(x)) = ty}
+\and
+\inferrule*[Right=lookup-Subst-Loc]
+{(x = \mathsf{toString}(id)), P^* \vdash s \stackrel{subst}{\mapsto} (id, Closure(s', t)}{\mathsf{lookupSubst}(s, Loc(x)) = Closure(s', t)}
+\end{mathpar}
+Here \texttt{toString} obtains the original string name from \texttt{Loc} or \texttt{Fresh} constructors. With this representation, the earlier example is handled without relying on
+De Bruijn indices:
+\begin{align*}
+  \texttt{(\textbackslash x.\textbackslash y.x) y}
+  &\leadsto
+  \texttt{(\textbackslash Fresh(s1, x).\textbackslash Fresh(s2, y).Fresh(s1, x)) Fresh(s3, y)} \\
+  &\betared \texttt{\textbackslash Fresh(s2, y).Fresh(s3, y)}
+\end{align*}
+The binder \texttt{y} and the free variable \(\texttt{y}\) are converted to different identifiers, even though they may have the same surface spelling. Therefore, the free variable remains free after substitution.
+
+\section{Beta reduction}
+
+For the type checker we require 2 important routines: reducing terms to weak head normal form (whnf) and to their normal form. 
+
+\paragraph{Whnf.} A term is in weak head normal form when no reduction is possible at its head
+position. Reduction does not continue under lambda abstractions, and it does
+not reduce arguments unless they are needed by a head computation. For example,
+$ (\lambda x.\ x)\ Set $ is not in weak head normal form, because its head is a beta-redex that reduces to $Set$ which is in weak head normal form. By contrast, $\lambda x.\ ((\lambda y.\ y)\ x)$ is already in weak head normal form, because the outermost constructor is a lambda abstraction. The beta-redex inside the body is not reduced when computing weak head normal form. In Statix weak head normalization was implemented as a head-reduction procedure with an
+explicit argument spine. We write
+
+\[
+\mathsf{whnf}_h(s; e; \overline{a}) = (s', e')
+\]
+
+\noindent to mean that expression \(e\), evaluated in scope \(s\), reduces to weak head
+normal form \(e'\) under scope \(s'\), while carrying a pending argument spine
+\(\overline{a}\). Each argument in the spine is a closure \((s_i,e_i)\), where
+\(s_i\) is the scope in which the argument \(e_i\) must be interpreted.
+
+The ordinary weak head normalization function is the special case with an
+empty argument spine:
+
+\[
+\mathsf{whnf}(s;e) = \mathsf{whnf}_h(s;e;\epsilon).
+\]
+
+\[
+\boxed{
+\begin{array}{rcll}
+
+\mathsf{whnf}_h(s; e_1\ e_2; \overline{a})
+&=&
+\mathsf{whnf}_h(s; e_1; (s,e_2) :: \overline{a})
+& \textsc{Wh-App}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; (e : A); \overline{a})
+&=&
+\mathsf{whnf}_h(s; e; \overline{a})
+& \textsc{Wh-Ann}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; \mathbf{let}\ x = v\ \mathbf{in}\ b; \overline{a})
+&=&
+\mathsf{whnf}_h(s[x' \mapsto (s,v)]; b; \overline{a})
+& \textsc{Wh-Let}
+\\
+&&
+\multicolumn{2}{l}{\text{where } x' = \mathsf{fresh}(s,x)}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; \lambda x.\ b; (s_a,a) :: \overline{a})
+&=&
+\mathsf{whnf}_h(s[x' \mapsto (s_a,a)]; b; \overline{a})
+& \textsc{Wh-Beta}
+\\
+&&
+\multicolumn{2}{l}{\text{where } x' = \mathsf{fresh}(s,x)}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; \lambda x.\ b; \epsilon)
+&=&
+(s,\lambda x.\ b)
+& \textsc{Wh-Lam}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; H; \overline{a})
+&=&
+\mathsf{rebuild}((s,H), \overline{a})
+& \textsc{Wh-Head}
+\\
+&&
+\multicolumn{2}{l}{
+H \in
+\{
+\Pi x : A.\ B,\ A \to B,\ \mathsf{Set}
+\}}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; x; \overline{a})
+&=&
+\mathsf{whnf}_h(s_v; v; \overline{a})
+& \textsc{Wh-VarSubst}
+\\
+&&
+\multicolumn{2}{l}{
+\text{if } \mathsf{lookupSubst}(s,x) = (s_v,v)}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; x; \overline{a})
+&=&
+\mathsf{rebuild}((s,x), \overline{a})
+& \textsc{Wh-VarStuck}
+\\
+&&
+\multicolumn{2}{l}{
+\text{if } \mathsf{lookupSubst}(s,x) \text{is undefined}}
+
+\end{array}
+}
+\]
+
+The first four rules perform head computation. Applications are decomposed into
+a head and an explicit argument spine. Type annotations are ignored during
+reduction. Let-bindings extend the current scope with a delayed substitution,
+and lambda abstractions consume one pending argument by extending the current
+scope with a delayed substitution for the bound variable. If a lambda has no
+pending argument, it is already in weak head normal form.
+
+The remaining rules describe stuck heads. A \(\Pi\)-type and \(\mathsf{Set}\) do not reduce at the head position, so the
+pending spine is rebuilt. Variables reduce only when they have a delayed
+substitution in the current scope. Otherwise, they are neutral terms, and the
+spine is rebuilt around them. \(\mathsf{rebuild}\) reconstructs applications once head
+reduction becomes stuck:
+
+\[
+\begin{array}{rcl}
+\mathsf{rebuild}((s,e), \epsilon)
+&=&
+(s,e)
+\\[0.5em]
+
+\mathsf{rebuild}((s,e), a :: \overline{a})
+&=&
+\mathsf{rebuild}(\mathsf{apply}((s,e),a),\overline{a}).
+\end{array}
+\]
+
+Applying a head to an argument preserves the argument's original scope. If the
+head and argument are already in the same scope, the application can be rebuilt
+directly:
+
+\[
+\mathsf{apply}((s,e),(s,a)) = (s, \mathsf{App}(e, a)).
+\]
+
+If the argument comes from a different scope or we have made some progress evaluating it, the argument is stored as a fresh temporary substitution, and the rebuilt application refers to the temporary variable:
+
+\[
+\mathsf{apply}((s,e),(s_a,a))
+=
+(s[t \mapsto (s_a,a)],\ \mathsf{App}(e, t))
+\qquad
+\text{where } t = \mathsf{fresh}(\_, \_app).
+\]
+
+\paragraph{Normalize.}
+
+Full normalization extends weak head normalization in two steps. First, it
+reduces the input expression to weak head normal form. Then, once the outermost
+constructor is known, it recursively normalizes the immediate subexpressions of
+that constructor. Thus, unlike weak head normalization, full normalization
+continues under lambda abstractions, inside applications, and inside function
+types. We write
+
+\[
+\mathsf{normalize}(s,e) = e'
+\]
+
+\noindent to mean that expression \(e\), evaluated in scope \(s\), fully normalizes to
+\(e'\). The auxiliary judgment
+
+\[
+\mathsf{normalize}_{\mathsf{wh}}(s,e) = e'
+\]
+
+\noindent normalizes an expression that has already been reduced to weak head normal
+form.
+
+\begin{framed}
+  \begin{mathpar}
+  \inferrule*[right=\textsc{Norm-Whnf}]
+    {
+      \mathsf{whnf}(s,e) = (s',w)
+      \\
+      \mathsf{normalise}_{\mathsf{wh}}(s',w) = n
+    }
+    {
+      \mathsf{normalise}(s,e) = n
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-Pi}]
+    {
+      \mathsf{normalise}(s,A) = A'
+      \\
+      \mathsf{normalise}(s,B) = B'
+    }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,\Pi x : A.\ B)
+      =
+      \Pi x : A'.\ B'
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-Lam}]
+    {
+      \mathsf{normalise}(s,b) = b'
+    }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,\lambda x.\ b)
+      =
+      \lambda x.\ b'
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-App}]
+    {
+      \mathsf{normalise}(s,f) = f'
+      \\
+      \mathsf{normalise}(s,a) = a'
+    }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,f\ a)
+      =
+      f'\ a'
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-Neutral}]
+    { }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,e) = e
+    }
+
+  \end{mathpar}
+\end{framed}
+
+The checker does not always need to fully normalize expressions. In most
+typing rules, it only needs to inspect the outermost constructor of a type. For
+this reason, our implementation reduces expressions to weak head normal form
+before pattern matching on them. Converting to weak head normal form is cheaper than full normal form. An efficient type checker will prefer whnf which is enough to make progress in type checking and unification. Converting to full normal form is however useful in some particular cases. It is generally used to display the type of an identifier or expression. In our infer routine it is also used when computing the codomain of Pi types:
+\begin{lstlisting}
+let f = ... :: (x : Nat) -> (y : Nat) -> (Fin x, Fin y)
+f 1 2
+\end{lstlisting}
+In the example above, the resulting type from the application \texttt{f 1 2} is \texttt{(Fin 1, Fin 2)}. If we were to only convert to whnf, the type would be \texttt{(Fin x, Fin y)} together with a scope where x is bound to 1 and y to 2. We therefore prefer to substitute whatever was bound and return a type that doesn't need further reducing.
+
+
+\section{Equality}
+Equality is an important feature of dependent type languages. In most programming languages, equality is a built-in feature of the underlying compiler. With non-dependently typed languages, it can be extended by the user, most commonly by implementing the $==$ operator or some form of equality trait. In code, equality is often formulated as a test that two different values are equal, returning a boolean answer. 
+
+\paragraph{Equality type constructor.} In contrast, dependently typed languages, such as Agda, model equality as formulated by Martin L{\"o}f. In his type theory \autocite{martinlof1984intuitionistic}, equality is a \textbf{type constructor} and not a function or operator. The equality type is defined as follows:
+$$\_ \equiv \_ : (A : Set) \rightarrow (x : A) \rightarrow (y : A) \rightarrow Set$$
+This type is well-formed for any two values that belong to the same type $A$. For brevity, the type $A$ of the left and right-hand side will be left implicit. As an example, valid types we can form with the equality constructor are: $1\underset{\mathbb{N}}{\equiv}2, \ true\underset{\mathbb{B}}{\equiv}true$, but not $Set \equiv 1$. Note that we can write $1 \equiv 2$, even if 1 isn't equal to 2, and it will still be a valid type. 
+
+\paragraph{Elements of equality type.} The type $x \equiv y$ is analogous to the proposition "x is equal to y". However, the proof for this proposition consists of producing an element of the type $x \equiv y$. In Martin L{\"o}f, there is a single way to construct an element of the equality type directly:
+\[
+refl : (A : Set) \rightarrow (x : A) \rightarrow x \equiv x
+\]
+Constructor $\mathsf{refl}$ stands for reflexivity and produces a proof that $x$ is equal to itself. The important consequence is that equality proofs are checked against an expected equality type. The constructor \(\mathsf{refl}\) can only inhabit an equality type whose two sides are \textbf{definitionally equal}. For example, \(\mathsf{refl}\) can prove \(1 \equiv 1\), and it can also prove \((\lambda x.\ x)\ 1 \equiv 1\), since the left-hand side reduces to \(1\).
+This separates propositional equality, represented by the
+type \(x \equiv y\), from definitional equality, which is the type checker's
+internal notion of equality up to reduction. Furthermore, propositional equality cannot be proven just by \(\mathsf{refl}\). A propositional equality proof will make use of the equality eliminator J \autocite{martinlof1984intuitionistic}, which allows case analysis on a proof.
+
+\paragraph{Equality in Statix.} In our language, equality is implemented closely to the Martin-L{\"o}f theory. The equality type constructor is represented by \texttt{==} and takes two terms (e.g. \texttt{Set == Set}). When checking that the type is valid, we also check that the terms on the left and right-hand side have the same types. Reflexivity is built-in the language, with the keyword \texttt{refl} being part of the syntax. \texttt{refl} is a checked term where the type must be $x \equiv y$, and $x$ must unify with $y$. This approach is different from Martin-Lof theory, where \texttt{refl} takes the element as argument. We illustrate the semantics of equality in our bidirectional approach with the following rules:
+\begin{mathpar}
+  \inferrule*[Right=Eq]
+  {s \vdash x \Uparrow A \leadsto x' \quad s \vdash y \Downarrow A \leadsto y'}
+  {s \vdash x == y \Downarrow Set \leadsto x'==y'}
+  
+  \and
+
+  \inferrule*[Right=Refl]{s \vdash x \equiv y}{s \vdash \mathsf{refl} \Downarrow x == y}
+\end{mathpar}
+We can model \texttt{refl} in this way without loss of generality, since its arguments are implicit (can be inferred from the type that refl is checked against). As an example consider the following code:
+
+\begin{lstlisting}[caption=definitional equality checking in Statix]
+let proof = (\x. refl) :: (x : Set) -> (x == x);
+proof
+\end{lstlisting}
+In order to type check this example, we have to show that the $x$ we introduced is equal to itself. \texttt{refl} will trigger only the unification between $x$ and $x$, which will hold trivially.
+
+\section{Statements and forward references}
+
+In the sections above, we have described all the terms in our language. Terms are used to write expressions, which is the syntactic unit that we can evaluate and type check. We introduce statements in the language to simplify certain aspects of name binding for the user. For instance, using only expressions to define a function with a body and a signature is cumbersome:
+\begin{lstlisting}
+let f = (\x.\y. y) :: (x: Set) -> (y: x) -> x;
+\end{lstlisting}
+Instead users can create a \textit{definition}. The grammar for statements is given in the following:
+\begin{lstlisting}[caption=Syntax for statements]
+Start.Program = [[Stmt*] [Expr]]
+Start.ProgramOnly = [[Stmt*]]
+  
+Stmt.Def = [def [ID] : [Expr]; [ID] = [Expr];]
+Stmt.Postulate = [postulate [ID]: [Expr];]
+\end{lstlisting}
+
+We now consider a program to be formed from zero or more statements, optionally followed by a single expression. The available statements are definitions and postulates. A postulate attaches a type to a name, without having to provide a value for the name. Beta reduction will treat this name as irreducible. On the other hand, definitions attach a body (a term) and a type to a given name. Listing \ref{listing:statements} shows how postulates and definitions can be used in our Statix implementation.
+
+\begin{lstlisting}[caption=Example postulates and definitions]
+postulate Nat : Set;
+postulate z : Nat;
+postulate suc : Nat -> Nat;
+
+def plusone : Nat -> Nat;
+plusone = \n. suc n;
+
+\end{lstlisting}
+\label{listing:statements}
+
+\paragraph{Scoping of statements.} Statements as we have presented them above are analogous to top level constructs in other programming languages. In C, a top level construct would be the definition of a function or a type. In Java, you could consider a class to be top level. There is a significant difference in how language implementations treat scoping at the top level. If we consider the C language, then top level definitions can only refer to definitions declared before them, akin to lexical scoping. Contrary to C, Java allows \textbf{forward-references}. In a Java compilation unit, it does not matter in which order the user introduces definitions. A top level construct is allowed to reference other visible constructs that are declared after it. This scoping behavior is not trivial to implement with ad-hoc compilers. Usually it involves splitting the type checking in 2 phases. The first pass, will pre-process the signatures of the statements and add them to the scope. The final pass would iterate over the statements and type check their bodies, with all the other signatures available in scope. 
+
+\paragraph{Forward references with scope graphs.} In our Statix implementation we have implemented forward references for statements. They make it easier for users to write statements in an order that makes sense for their use case, rather than an order established by the compiler. Using the properties of scope graphs and scope graphs queries we can implement this type of scoping without additional passes. Recall that the scope graphs framework is based on constraints. Our type checker emits constraints and scope graph queries, which are all managed by a solver. The solver will delay queries from a scope, until it is certain that its result will not change. The result of a query can change if we add name bindings to the target scope (or its parents). \par
+We can make use of this behavior to delay the resolution of names when we haven't reached their declaration. Concretely, for statements we will use a single top level scope $S_{stmt}$. Statements are processed in the order given by the AST. If we are able to check a definition, we will update $S_{stmt}$ with a \texttt{!hasTy} relation for the definition. Conversely, if we require the type of a name that we haven't processed yet, that query will be delayed and the checker will process further statements. After going through all declarations, Statix will be able to establish that $S_{stmt}$ cannot be extended with bindings, and all delayed queries should resolve\footnote{Either successfully or error}. Consider the following program, where the body of \texttt{g} refers to \texttt{f}, \texttt{suc}, and \texttt{zero} before these names are declared:
+
+\begin{lstlisting}[caption=Forward references between statements, label=listing:forward-references]
+1. postulate Nat : Set;
+
+2. def g : Nat;
+3. g = f (suc zero);
+
+4. def f : Nat -> Nat;
+5. f = \n. suc n;
+
+6. postulate suc : Nat -> Nat;
+7. postulate zero : Nat;
+\end{lstlisting}
+When the checker processes the first postulate, it adds a type binding for \texttt{Nat} to this scope. When it reaches the definition of
+\texttt{g}, it first checks the declared type \texttt{Nat}. This succeeds
+because the type of \texttt{Nat} is already available. The checker can then add
+the binding \texttt{hasTy}(g, Nat) to \(S_{\mathsf{stmt}}\). However, checking the body of \texttt{g} produces
+queries for the types of \texttt{f}, \texttt{suc}, and \texttt{zero}. At this
+point these names have not yet been declared, so the corresponding queries
+cannot be resolved immediately. Instead, the solver delays them. As the checker continues through the remaining statements, new bindings are
+added to \(S_{\mathsf{stmt}}\). The declaration of \texttt{f} adds
+\(\texttt{hasTy}(f, Nat \to Nat)\), the postulate for \texttt{suc} adds
+\(\texttt{hasTy}(suc, Nat \to Nat)\), and the postulate for \texttt{zero} adds
+\(\texttt{hasTy}(zero, Nat)\). Once these bindings have been added, the delayed
+queries from the body of \texttt{g} can be resumed and resolved. The body
+\texttt{f (suc zero)} can then be checked against the expected type
+\texttt{Nat}.
+
+
+The order in which the constraints are emitted is different from the
+order in which all queries are resolved. For Listing~\ref{listing:forward-references},
+the relevant events are:
+
+\[
+\begin{array}{rcll}
+\mathsf{line\ no.} &  & \mathsf{constraint / query} & \\  
+1 &:& \texttt{!hasTy}(Nat, Set) & \text{is added} \\
+2 &:& \texttt{!hasTy}(g, Nat) & \text{is added } \\
+3.1 &:& \texttt{getTy}(S_{\mathsf{stmt}}, f) & \text{is delayed} \\
+3.2 &:& \texttt{getTy}(S_{\mathsf{stmt}}, suc) & \text{is delayed} \\
+3.3 &:& \texttt{getTy}(S_{\mathsf{stmt}}, zero) & \text{is delayed} \\
+4 &:& \texttt{!hasTy}(f, Nat \to Nat) & \text{is added} \\
+5 &:& \texttt{getTy}(S_{\mathsf{stmt}}, suc) & \text{is delayed} \\
+6 &:& \texttt{!hasTy}(suc, Nat \to Nat) & \text{is added} \\
+7 &:& \texttt{!hasTy}(zero, Nat) & \text{is added} \\
+7 &:& \texttt{getTy}(S_{\mathsf{stmt}}, f),
+      \texttt{getTy}(S_{\mathsf{stmt}}, suc),
+      \texttt{getTy}(S_{\mathsf{stmt}}, zero)
+   & \text{are resolved}
+\end{array}
+\]
+
+\paragraph{Mutual references.} An interesting case that arises when implementing forward references is when 2 statements mutually reference each other. Consider the following example:
+\begin{lstlisting}
+postulate Nat : Set;
+postulate zero : Nat;
+postulate suc : Nat -> Nat;
+
+def g : Nat -> Nat;
+g = \n. f (suc n);
+
+def f : Nat -> Nat;
+f = \n. g n;
+\end{lstlisting}
+This code correctly type checks in our Statix implementation, because the mutual dependency isn't in the signatures of the definitions. Consider definition $g$ first. We can easily check that $Nat \rightarrow Nat : Set$ and update $S_{stmt}$ with the \texttt{!hasTy[g, Nat -> Nat]} binding. It is crucial to add this binding before checking the body of $g$, because it will get stuck on the reference to $f$. Similarly, we can check $f$'s signature and make a binding for it before we check the body. When the bindings for the signatures are created, the queries for the type of $g$ and $f$ also become unstuck, and the delayed constraints will resume. \par
+If the mutual dependency appears in the signatures themselves, then the checker
+cannot add either binding without first resolving the other. In that case, the
+constraints form a cyclic dependency at the type level. Such programs are not
+accepted by the current implementation.
+
+\section{Modules}
+
+This section describes another feature of our language that uses non-lexical scoping: modules. The concept of modules exists in many programming languages, but their implementations differ significantly. In some languages, modules primarily serve as compilation units or packages. In others, they are used to express abstraction boundaries, interfaces, or parameterized components. For this thesis, we are interested in a narrower aspect of modules, namely the interaction with name resolution.
+
+\subsection{Modules as name-resolution constructs}
+
+Modules can be viewed as constructs that organize declarations into named scopes. From this perspective, a module is not primarily a file, package, or compilation unit, but a scope that can be referred to by name. The declarations inside a module may be accessed through qualified names, or they may be made available for unqualified lookup by opening the module.
+
+Lexical scoping alone is usually not sufficient to describe module lookup, because a declaration may become visible in a scope where it was not syntactically declared. For example, if a module is opened, names declared inside that module can be resolved from the opening scope. Similarly, a qualified name such as \texttt{A.B.x} requires lookup to proceed through a sequence of module scopes rather than through the usual lexical parent relation alone. The goal of this implementation is therefore not to model every aspect of module systems, but to capture the name-resolution behavior induced by modules. In particular, we focus on modules as named scopes, nested modules as hierarchical scopes, qualified names as path-based lookup, and open declarations as visibility links between scopes.
+
+\subsection{A core module fragment}
+
+Our Statix implementation of modules consists of declarations, nested modules, qualified access, and open statements. A module declaration introduces a named scope containing the statements in its body. For example, in the following program, the statement \texttt{x} belongs to the scope introduced by module \texttt{A}:
+
+\begin{lstlisting}
+module A {
+  def x : Set;
+  x = ...
+}
+\end{lstlisting}
+
+Modules may also be nested. A nested module introduces a new scope inside the scope of the surrounding module:
+
+\begin{lstlisting}
+module A {
+  def x : Set;
+  x = ...
+
+  module B {
+    def y : Set;
+    y = ...
+  }
+}
+\end{lstlisting}
+In this example, \texttt{B} is declared inside \texttt{A}. The declaration \texttt{y} belongs to the scope of \texttt{B}, while \texttt{x} belongs to the surrounding scope of \texttt{A}. Since \texttt{B} is nested inside \texttt{A}, declarations inside \texttt{B} may refer to declarations from \texttt{A} using the usual lexical lookup behavior. \par
+
+The language also supports qualified access. A declaration inside a module can be referred to by prefixing it with the module path:
+\begin{lstlisting}
+let z = A.B.y;
+\end{lstlisting}
+Resolving \texttt{A.B.y} requires resolving \texttt{A}, then resolving \texttt{B} inside the scope associated with \texttt{A}, and finally resolving \texttt{y} inside the scope associated with \texttt{B}. Thus, qualified names make the structure of module scopes explicit in the name being resolved.
+
+Lastly, the language supports opening a module:
+
+\begin{lstlisting}
+module C {
+  open A;
+  def z : Set;
+  z = x;
+}
+\end{lstlisting}
+The declaration \texttt{open A} makes the exported declarations of \texttt{A} available for unqualified lookup inside \texttt{C}. After opening \texttt{A}, the name \texttt{x} can be resolved in \texttt{C}. This is the main source of non-lexical scoping in the module implementation since \texttt{A} is not lexical parent of \texttt{C}.
+
+\subsection{Scope-graph representation}
+
+To support module declarations and openings, we have to adapt the existing scope graph edges and queries. Firstly, it is worth mentioning that declaring or opening a module are both statements in our language:
+\begin{lstlisting}[caption=Module statements syntax]
+Stmt.Module = [module [ID] { [Stmt*] }]
+Stmt.Open = [open [ID];]
+\end{lstlisting} 
+\paragraph{Module declaration.} Like definitions and postulates, declaring a module should create a binding in the top-level scope in which it was defined, such that we can refer to it by name. The module's body is type checked in a child scope of the top-level that we link via a $P$ edge. This scope is important as it holds all the bindings created within the module which we may later import. Since a module is neither a type nor a substitution, we need a new relation \texttt{!modBind[ID, scope]} that associates the name of the module with the body's scope. With this setup, it is not possible to reference definitions from inside a module accidentally\footnote{Without qualified access or opening the module}, because the module's body will be a sibling scope and not a direct parent. Primitives such as \texttt{getTy} or \texttt{lookupSubst} can reach the top level, but will not enter the module's scope. 
+
+\paragraph{Opening modules.} Accessing a module is achieved by resolving its name. To do this we create a new primitive \texttt{getModule : (scope, ID) -> scope} that queries for a \texttt{modBind} relation containing \texttt{ID} by considering only paths of the form $P*$. Paths that contain fewer $P$ edges are preferred since we want to resolve to the lexically closest module. If the query returns, then we obtained the reference to the module's scope. Opening this module will create a new $I$ edge between the current scope and the module's scope. We choose to model imports with a different edge as they will allow us to distinguish between names that are resolved lexically and names that are resolved through importing.
+\label{lst:moduleresolution}
+\begin{lstlisting}
+module B {
+  postulate x : Set;
+}
+module A {
+  open B;
+  x
+}
+\end{lstlisting}
+
+\begin{figure}[!ht]
+\centering
+\resizebox{0.6\textwidth}{!}{%
+\begin{circuitikz}
+\tikzstyle{every node}=[font=\fontsize{8.0pt}{10.4pt}\selectfont]
+\draw  (2.375,11.5) circle (0.875cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont $s_{top}$} ;
+\draw  (2.375,8.5) circle (0.75cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont $s_A$} ;
+\draw [ rounded corners = 1.2] (1,13.875) rectangle (3.625,13.125);
+\node[anchor=center, align=center, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm, text opacity=1] at (2.3125,13.5) {\fontsize{8.0pt}{10.4pt}\selectfont {\color[RGB]{0,115,33}$!modBind["A", s_A]$}};
+\draw [-{Stealth[scale=1.5]}, ] (2.375,9.25) -- (2.375,10.625)node[pos=0.5, fill={rgb,255:red,255; green,255; blue,255}, fill opacity=1, text opacity=1, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm]{P};
+\draw [-{Square[scale=1.5]}, ] (2.375,12.375) -- (2.375,13.125);
+\draw  (5.375,8.5) circle (0.75cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont $s_B$} ;
+\draw [-{Stealth[scale=1.5]}, ] (5.125,9.25) -- (3.125,11)node[pos=0.5, fill={rgb,255:red,255; green,255; blue,255}, fill opacity=1, text opacity=1, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm]{P};
+\draw [ color={rgb,255:red,253; green,0; blue,0}, draw opacity=1, -{Stealth[scale=1.5]}, ] (3.125,8.5) -- (4.625,8.5)node[pos=0.5, fill={rgb,255:red,255; green,255; blue,255}, fill opacity=1, text opacity=1, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm, text opacity=1]{{\color[RGB]{233,0,0}I}};
+\draw [-{Square[scale=1.5]}, ] (3.25,11.625) -- (4.125,11.625);
+\draw [ rounded corners = 1.2] (4.125,12) rectangle (6.75,11.25);
+\node[anchor=center, align=center, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm, text opacity=1] at (5.4375,11.625) {\fontsize{8.0pt}{10.4pt}\selectfont {\color[RGB]{22,118,0}$!modBind["B", s_B]$}};
+\draw [-{Square[scale=1.5]}, ] (6.125,8.5) -- (7.25,8.5);
+\draw [ rounded corners = 1.2] (7.25,8.875) rectangle (9.625,8.125);
+\node[anchor=center, align=center, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm, text opacity=1] at (8.4375,8.5) {\fontsize{8.0pt}{10.4pt}\selectfont {\color[RGB]{0,87,189}!hasTy["x", Set]}};
+\draw  (2.375,5.875) circle (0.625cm);
+\draw [-{Stealth[scale=1.5]}, ] (2.375,6.5) .. controls (2.375,7.25) and (2.375,7.125) .. (2.375,7.75) node[pos=0.5, fill={rgb,255:red,255; green,255; blue,255}, fill opacity=1, text opacity=1, inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm]{P};
+\end{circuitikz}
+}%
+\caption{Resulting scope graph of \ref{lst:moduleresolution}}
+\label{fig:scopegrahimport}
+\end{figure}
+
+\paragraph{Name resolution.} Lastly, because we have added a new  type of edge, we need to adapt the current name resolution policy to be able to resolve names from opened modules. Instead of only considering paths of only $P$ edges, \texttt{getTy} and \texttt{lookupSubst} should accept paths of the form $P* I?$. The last $I$ edge should appear zero or one time, as we allow name resolution to walk only a single import. 
+\par A subtle aspect of this name resolution procedure is that we may find multiple declarations with the same name. Conflicting declarations may come from the local scope or from the opened modules. Programming language implementations take different approaches to this problem. For instance, in Agda you can open a module and choose to hide certain names. Normally, if multiple definitions with the same name are in scope it would cause an error, so hiding the names that you don't want to import is helpful. OCaml takes a different approach where local names are always preferred over imported ones. In Statix we will implement the latter as it fits better with scope graphs and the query policy. The name resolution primitives should prefer paths $P*$ over $P*I$, even if the path with $I$ edges is shorter. Unfortunately, this cannot be modeled with Statix's prefix comparison of paths. Consider the paths $PPI$ and $PPP$. We can say that we prefer the second, with the label order $P < I$ (Statix prefers the path with the smallest order). But in a case where we can only resolve the name through imports we might need to compare the paths: $PPI$ and $PI$. With the same label order, Statix would choose the first path. This is not desirable, as we want to resolve a name by walking the closest import. Therefore, we need to execute name resolution in 2 phases. First we will query for the name by walking $P$ edges only. If we cannot find the declaration, we will search again on paths $P*I$. Both queries will prefer the shortest paths.
