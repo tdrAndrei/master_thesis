@@ -1,92 +1,209 @@
-% !TEX root = document.tex
+\chapter{Evaluation}
+\label{chap:evaluation}
 
-\chapter{\label{chap:Results}Results}
+This thesis investigates whether higher-order pattern unification can be
+integrated into a type checker whose binding structure is represented using
+scope graphs. The preceding chapters described one concrete realization of
+this idea in Statix. In this chapter, we evaluate the resulting design with
+respect to the requirements that motivated it.
 
-To demonstrate the combination of scope graph name resolution with higher order unification, we will describe how to typecheck a dependent type language. The main feature of this language is the ability to infer implicit arguments.
+The evaluation is primarily qualitative. The purpose of the implementation is
+not to compete with existing dependent type checkers in terms of performance,
+nor to provide a complete elaborator for dependent type theory. Instead, it is
+used to evaluate whether scope graphs can provide the binding information
+required by higher-order unification while preserving their support for
+non-lexical name resolution.
 
-\[
-  \begin{aligned}
-     & A B    & ::= & \; Set \mid A \equiv B \mid A \rightarrow B \mid (x : A) \rightarrow B \mid \{x : A\} \rightarrow B                           & types             \\
-     & M N    & ::= & \; x \mid ?m \mid M :: A \mid \lambda x.\; M \mid M\; N \mid refl \mid let \; x = M; \; N \mid postulate \; x \colon A ; \; M & terms             \\
-     & \Gamma & ::= & \; \Gamma; x \colon A                                                                                                         & typing \; context \\
-     & \Delta & ::= & \; \Delta; ?m \colon A                                                                                                        & meta-context      \\
-  \end{aligned}
-\]
+During development, the implementation was additionally validated using an
+executable regression suite. These tests are used to guard against
+implementation regressions, but are not treated as an independent benchmark.
+The discussion in this chapter therefore focuses on the properties
+demonstrated by the implementation rather than on test counts or performance
+measurements.
 
-Typechecking is done with bidirectional rules with $\Rightarrow$ for inferring \cref{fig:infer} and $\Leftarrow$ for checking \cref{fig:check}. For some rules the relation $A = B$ appears, which suggests that $A$ and $B$ should be unified. The meta context $\Delta$ should have mutable semantics, meaning that solving or creating a metavariable in one branch of the inference tree should mutate the context for all the other branches. This is opposed to the typing context, which is responsible for storing the identifiers that are in scope, associated with their types.
+\section{Evaluation criteria}
+\label{sec:evaluation-criteria}
 
-\begin{figure}
-  \begin{mathpar}
-    \inferrule[Meta]
-    {?a:A \in \Delta }
-    {\Gamma, \Delta \vdash ?a \Rightarrow A}
+We evaluate the implementation according to three criteria derived from the
+requirements discussed in Chapters~2 and~3.
 
-    \inferrule[Var]
-    {x:A \in \Gamma }
-    {\Gamma, \Delta \vdash x \Rightarrow A}
+First, higher-order unification must be able to operate on terms containing
+binders. A metavariable introduced underneath a binder may depend on that
+binder, and its eventual solution may therefore be a function rather than a
+closed first-order term. The implementation must preserve enough information
+about the context of the metavariable to construct such a solution without
+allowing variables to escape their scope.
 
-    \inferrule[Set]{ \;}
-    {\Gamma, \Delta \vdash Set \Rightarrow Set}
+Second, solving a metavariable must interact correctly with the rest of the
+type checker. A metavariable may be created in one lexical scope and solved
+while checking a term in another. Its solution must subsequently be visible
+wherever the metavariable is used. This requirement differs from ordinary
+lexical name binding and places additional demands on the representation of
+metavariables.
 
-    \inferrule[Pi]
-    { \Gamma, \Delta \vdash t \Rightarrow (x : A) \to B \\ \Gamma, \Delta \vdash u : A }
-    { \Gamma, \Delta \vdash t\;u \Rightarrow B[x \slash u] }
+Third, adding higher-order inference should not require abandoning the
+principal motivation for using scope graphs. In particular, the same type
+checker should continue to represent non-lexical visibility relations such as
+module openings, qualified references, shadowing, and forward references.
 
-    \inferrule[ImpPi]
-    { \Gamma, \Delta \vdash t \Rightarrow \{x : A\} \to B \\\Delta;?a \vdash (t \; ?a)\; u \Rightarrow C }
-    { \Gamma,\Delta \vdash t\;u \Rightarrow C }
+Together, these criteria capture the central question of this work: whether
+the binding information required by higher-order pattern unification can be
+obtained from and integrated with an explicit scope-graph representation.
 
-    \inferrule[Let]
-    { \Gamma, \Delta \vdash t \Rightarrow A \\ \Gamma;x \colon A, \Delta \vdash u : B }
-    { \Gamma, \Delta \vdash let \; x = t; \; u \Rightarrow B }
+\section{Higher-order unification over scope graphs}
+\label{sec:evaluation-hou}
 
-    \inferrule[Postulate]
-    { \Gamma, \Delta \vdash A \Rightarrow Set \\ \Gamma;d \colon A, \Delta \vdash u : B }
-    { \Gamma, \Delta \vdash postulate \; d \colon A; \; u \Rightarrow B }
+The implementation provides evidence that scope graphs contain sufficient
+information to construct scoped metavariable solutions for the higher-order
+pattern fragment considered in this thesis.
 
-  \end{mathpar}
-  \caption{Inference rules}
-  \label{fig:infer}
-\end{figure}
+When a hole is elaborated underneath one or more binders, it is represented by
+a metavariable applied to the variables on which its solution is allowed to
+depend. Consequently, a metavariable is not treated as an unconstrained global
+unknown. Its occurrence explicitly records the local context available at the
+point where it was introduced.
 
-\begin{figure}[t]
-  \begin{mathpar}
-    \inferrule[Lam]
-    { \Gamma; x\colon A, \Delta \vdash t \Leftarrow B }
-    { \Gamma, \Delta \vdash \lambda x. \; t \Leftarrow (x : A) \to B }
+During a flex-rigid unification problem, the implementation queries the scope
+graph to determine which variables are bound in the current context. These
+bindings are used when checking whether the arguments of the metavariable
+belong to the higher-order pattern fragment. In addition, the implementation
+performs the linearity and occurs checks required before constructing a
+solution. When these conditions hold, the solution can be formed as a lambda
+abstraction over the metavariable arguments.
 
-    \inferrule[Implicit]
-    {\Gamma, \Delta;?m : A \vdash t \Leftarrow B[x \slash ?m]}
-    {\Gamma, \Delta \vdash t \Leftarrow \{x:A\} \to B}
+This is an important difference from a representation in which binding exists
+directly in the meta-language. Scope graphs do not themselves provide lambda
+abstraction or higher-order substitution. Nevertheless, the information they
+store about declarations and their visibility is sufficient to recover the
+context needed by the pattern unification procedure. The higher-order
+structure of the solution can therefore be reconstructed explicitly rather
+than being provided implicitly by the representation.
 
-    \inferrule[Refl]
-    {\Gamma, \Delta \vdash X = Y}
-    {\Gamma, \Delta \vdash refl \Leftarrow X \equiv Y}
+The implementation consequently demonstrates that the use of a first-order
+term representation does not in itself prevent higher-order pattern
+unification. What is required is a correspondence between metavariable
+dependencies and the binding information represented by the scope graph.
 
-    \inferrule[Set]
-    { \;}
-    {\Gamma, \Delta \vdash Set \Leftarrow Set}
+\section{Metavariable state and scoping}
+\label{sec:evaluation-metavariables}
 
-    \inferrule[Pi-Wellformed]
-    {\Gamma, \Delta \vdash A \Leftarrow Set \\ \Gamma;x:A, \Delta \vdash B \Leftarrow Set}
-    {\Gamma, \Delta \vdash (x:A) \to B \Leftarrow Set}
+The treatment of metavariables exposes a more substantial mismatch between
+ordinary scope-graph bindings and elaboration.
 
-    \inferrule[ImpPi-Wellformed]
-    {\Gamma, \Delta \vdash A \Leftarrow Set \\ \Gamma;x:A, \Delta \vdash B \Leftarrow Set}
-    {\Gamma, \Delta \vdash \{x:A\} \to B \Leftarrow Set}
+Bindings introduced during ordinary name resolution are immutable. A
+metavariable, however, changes state during type checking: it is initially
+unsolved and may later acquire a solution. Moreover, the scope in which this
+solution is discovered need not be an ancestor of every scope in which the
+metavariable is subsequently inspected. Treating metavariable solutions as
+ordinary lexical bindings is therefore insufficient.
 
-    \inferrule[Eq-Wellformed]
-    {\Gamma, \Delta \vdash t \Rightarrow A \\ \Gamma, \Delta \vdash u \Rightarrow B \\ A = B}
-    {\Gamma, \Delta \vdash t \equiv u \Leftarrow Set}
+Chapter~5 addresses this problem by maintaining a separate chain of scopes for
+metavariable state. New states extend this chain rather than modifying
+existing bindings, and the current end of the chain represents the latest
+state of the metavariable store. The type-checking relations explicitly pass
+this state through their computations.
 
-    \inferrule[infer]
-    {\Gamma, \Delta \vdash t \Rightarrow A' \\ A = A'}
-    {\Gamma, \Delta \vdash t \Leftarrow A}
+This construction is more explicit than the treatment of logic variables in a
+higher-order logic programming language, but it demonstrates that mutable
+elaboration state can be represented within the otherwise immutable
+scope-graph model. In particular, a metavariable may be solved while checking
+one part of the program and subsequently reduced to the same solution from a
+different lexical scope.
 
-  \end{mathpar}
-  \caption{Checking rules}
-  \label{fig:check}
-\end{figure}
+This result also clarifies that higher-order unification introduces a form of
+non-lexical state that is distinct from ordinary source-language name
+resolution. The metavariable store is global with respect to the lexical
+structure of the program, whereas the dependencies of an individual
+metavariable remain restricted by the context in which it was created. The
+implementation must therefore maintain both notions simultaneously.
 
-\subsection{Meta-context in scope graph}
-To model the meta-context in the scope graph framework we instantiate a toplevel meta-scope called \texttt{metaS}. Each rule should be given a reference to this exact scope, such that it has permission to extend it. To model the creation of new unsolved metavariable we create a new scope $s'$ with an $M$ labeled edge to \texttt{metaS}. The reference to the scope $s'$ becomes the unique identifier of the metavariable. When we want to instantiate a metavariable, we will create the \texttt{inst[id, V]} relation in metaS, where \texttt{id} is the metavariable's identifier and V represents its value. Such a relation can be easily queried for in any branch of our inference. Since we always have a reference to \texttt{metaS}, we want to search for \texttt{inst} relations with a given id, without leaving \texttt{metaS}.
+\section{Preserving non-lexical name resolution}
+\label{sec:evaluation-nonlexical}
+
+A second objective of the implementation is to retain the benefits of scope
+graphs after higher-order inference is introduced.
+
+The language implemented in Chapter~4 includes constructs whose visibility
+cannot be described solely through lexical nesting. Module openings create
+edges between otherwise separate parts of the program, qualified references
+select declarations from particular module scopes, and forward references
+allow a use to be processed before the corresponding declaration has been
+encountered.
+
+These constructs remain expressed using the same scope-graph machinery after
+the introduction of metavariables and higher-order unification. The unifier
+does not replace name resolution with a separate lexical environment.
+Instead, the two mechanisms coexist: ordinary identifiers are resolved using
+scope-graph queries, while the same graph structure is also used to recover
+binding information needed when solving metavariables.
+
+This coexistence is significant for the motivation of the thesis. A
+dependently typed language does not only contain lambda and Pi binders. A
+practical language may also contain modules, imports, namespaces, inheritance,
+or other visibility mechanisms that are not naturally represented by lexical
+nesting. The implementation shows that adding higher-order inference does not
+require giving up an explicit representation of these relations.
+
+The comparison with HOAS in the following chapter examines the opposite design
+choice. There, lexical binding and higher-order unification are provided
+directly by the meta-language, while non-lexical name resolution requires
+additional user-defined machinery.
+
+\section{Limitations}
+\label{sec:evaluation-limitations}
+
+The evaluation should be understood as a feasibility result for the fragment
+implemented in this thesis rather than as a completeness result for dependent
+type elaboration.
+
+The most important limitation concerns postponed constraints. A practical
+dependent type checker cannot always determine immediately whether a
+higher-order constraint is solvable. Constraints outside the pattern fragment
+may become solvable after other metavariables are instantiated. Elaborators
+such as those discussed in Chapter~3 therefore postpone such constraints and
+reconsider them when additional information becomes available.
+
+The current Statix implementation does not provide such a mechanism for the
+higher-order unification procedure. Flex-rigid constraints can be solved when
+they satisfy the required pattern conditions, but constraints that require
+postponement must be rejected. For the same reason, support for flex-flex
+constraints is limited. The implementation therefore realizes higher-order
+\emph{pattern} unification only for the cases that can be decided with the
+information currently available to the solver.
+
+A second limitation is that the language implemented in this thesis is
+intentionally small. It contains the constructs required to study dependent
+typing, elaboration, and non-lexical binding, but it is not intended to model
+the complete feature set of a production dependently typed language. Features
+such as inductive families, universe hierarchies, pattern matching, and more
+sophisticated elaboration strategies may introduce additional interactions
+between name resolution and unification.
+
+Finally, the evaluation does not establish formal soundness or completeness
+of the unification procedure. The executable implementation and its regression
+suite provide evidence that the design behaves as intended for the considered
+cases, but they do not replace a metatheoretic proof. Establishing such
+properties for the combined system of scope graphs, elaboration, and
+higher-order unification remains future work.
+
+\section{Summary}
+\label{sec:evaluation-summary}
+
+The implementation demonstrates that higher-order pattern unification can be
+combined with scope-graph-based name binding without replacing the latter by a
+purely lexical representation. Scope graphs provide sufficient information to
+recover the bound variables on which metavariable solutions may depend, while
+a separate metavariable state allows solutions to remain visible independently
+of lexical nesting.
+
+At the same time, the experiment exposes a boundary between the two systems.
+Scope graphs naturally describe visibility relations, but they do not provide
+the constraint-postponement and mutable unification state expected by a
+higher-order elaborator. Supporting a more complete dynamic pattern
+unification algorithm would therefore require additional solver mechanisms.
+
+Within these limitations, the implementation gives a positive answer to RQ1:
+higher-order pattern unification can be integrated with a
+scope-graph-based constraint system for the implemented fragment. The next
+chapter examines the resulting trade-offs by comparing this explicit approach
+to binding with a HOAS-based implementation in Elpi.

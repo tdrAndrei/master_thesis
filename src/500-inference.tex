@@ -147,8 +147,59 @@ Flex-Rigid problems require more careful handling. In general such constraints c
   \item \textbf{Occurs check}: We obtain the free variables of the rigid term $R$ and check that $?M$ doesn't appear in them.
   \item \textbf{Pattern check}: All arguments that $?M$ is applied on should be in the pattern fragment, namely they should all reduce to variables that are bound in this scope (bound variables).
   \item \textbf{Linearity check}: After pattern check, we need to ensure that the bound variables are all unique.
+  \item \textbf{Scope check:}
+    Compute the free variables \(FV(R)\) and verify that they are contained in
+    the set of variables visible from the scope in which \(?M\) was created.
+   
 \end{enumerate}
 
 To implement these checks in Statix we require functions to reveal the free variables of a term and to obtain the binders that we are under in the current scope. Obtaining the free variables from term R is easy to do in our Statix representation. Free variables will have a \texttt{Fresh} constructor and will not be under a binder with the same name in R. Bound variables are obtained by querying for the \texttt{binder} relation starting from the current scope in which we perform the unification. This will return a list of all binders that we are under when unifying. Furthermore, all arguments that $?M$ is applied on should be elements of this list. If all the above conditions are met we can \textbf{invert} and obtain the solution for $?M$. The solution will have the form: $\backslash x_1.\ \backslash x_2.\ \backslash \dots R$ and will be guaranteed to be well scoped. \par
 
 Flex-Flex problems are hard to deal with in Statix. Without the ability to postpone problems we need an approximation to this scenario. The only problem we can solve with certainty is of the form $?M \equiv ?N$, where we unify 2 different metavariables with no arguments. The solution is to make one metavariable equal to the other. For the rest of flex-flex problems we will fail type checking and signal that this is a flex-flex case.
+
+
+\section{Discussion}
+\label{sec:inference-discussion}
+
+The implementation presented in this chapter demonstrates that higher-order
+pattern unification can be integrated with a type checker that represents name
+binding using scope graphs. In particular, the scope graph provides the
+information required to determine which bound variables a metavariable may
+depend on. During flex-rigid unification, this information can be used to check
+that the metavariable application belongs to the pattern fragment and to
+construct a well-scoped lambda abstraction as its solution. Therefore, the
+first-order representation of terms used by Statix does not prevent
+higher-order unification, provided that the binding context required by the
+unification algorithm can be recovered explicitly.
+
+An important consequence of adding metavariables is that their scoping
+behaviour differs from that of ordinary program variables. A metavariable may
+be introduced in one lexical scope, solved while checking a term in another
+scope, and subsequently inspected from yet another part of the program. Its
+solution must therefore be globally visible, while the variables on which the
+solution is allowed to depend are still determined by the context in which the
+metavariable was created. The separate metavariable scope introduced in
+Section~5.3 reflects this distinction. It provides global access to the current
+state of a metavariable while retaining the lexical information necessary to
+restrict its possible solutions.
+
+The implementation also exposes a limitation of the current integration.
+Higher-order pattern unification is most useful in an elaborator that can
+postpone constraints which cannot yet be solved and reconsider them after more
+metavariables have been instantiated. The current Statix implementation does
+not provide such a mechanism for the higher-order constraints introduced in
+this work. As a result, flex-rigid constraints can be solved when they already
+satisfy the pattern conditions, whereas constraints that might only become
+patterns later must be rejected. Support for flex-flex constraints is similarly
+restricted. The result of this chapter is therefore an integration of the higher-order pattern fragment with scope graphs, and not a complete implementation of dynamic higher-order unification.
+
+Overall, these results give a positive answer to RQ1. Scope
+graphs can provide the binding information required by higher-order pattern
+unification, while metavariable state can be represented alongside the
+ordinary scope graph. At the same time, the implementation shows that binding
+representation is only one part of a practical elaborator. Richer support for
+constraint postponement and reactivation would be required to cover the
+broader class of unification problems encountered by dependently typed
+languages. The following chapter examines how these responsibilities change
+when binding and higher-order unification are instead provided directly by a
+higher-order meta-language.

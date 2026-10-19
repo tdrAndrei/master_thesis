@@ -3,19 +3,66 @@
 \chapter{\label{chap:introduction}Introduction}
 Having a strong type system has become a defining characteristic of many modern programming languages. Beyond basic error detection, expressive type systems allow developers to encode invariants directly into the structure of their programs, shifting entire classes of bugs from runtime to compile time. Types serve as a precise form of documentation, making assumptions and guarantees explicit and enforceable.
 
-Dependent type systems represent a significant step in this progression. Positioned at the top of the lambda cube, they extend conventional type systems by allowing types to depend on values. This added expressiveness enables the encoding of precise specifications. For instance, types that capture the exact length of a list or enforce domain-specific constraints. Besides the regular function type $A \rightarrow B$, this calculus introduces $\Pi$-types of the form: $(x:A) \rightarrow B$, where $x$ can appear in the definition of $B$. $x$ is only known when we apply the function on an argument. The actual value of the argument should be substituted for $x$ in $B$. Additionally, through the Curry-Howard correspondence \autocite{reis_curry-howard_nodate}, such type systems blur the lines between programs and proofs: writing a well-typed program becomes equivalent to constructing a proof of a logical proposition. As a result, languages with dependent types can function as proof assistants for propositional logic with quantifiers. Practical realizations of these ideas can be seen in systems such as Lean, Agda, and Idris 2, where programming and formal verification are tightly integrated. For a dependently typed language to be considered practical, it needs to perform as much type inference as possible. Consider the function to add an element to the head of a list in a dependent type setting where all types are explicit: $$cons :: (A : Set) \rightarrow (n: Int) \rightarrow A \rightarrow Vec\ A\ n \rightarrow Vec\ A\ (n+1)$$
-$cons$ is polymorphic with respect to the type of the list and the length of the list. Providing an explicit argument for the type and length of the list every time the function is called is very cumbersome. To this end, production implementations manage to infer some of the types and values, making them implicit (they appear in the signature but can be omitted on application). Inferring implicit arguments is a big challenge for dependent type checkers and requires higher order (pattern) unification \autocite{johansson_eliminating_nodate} between terms that can be either values or types.
+Dependent type systems represent a significant step in this progression. They extend conventional type systems by allowing types to depend on values. This added expressiveness enables the encoding of precise specifications. For instance, types that capture the exact length of a list or enforce domain-specific constraints. Through the Curry-Howard correspondence \autocite{reis_curry-howard_nodate}, such type systems can express logical proofs. Writing a well-typed program becomes equivalent to constructing a proof of a logical proposition. As a result, languages with dependent types can function as proof assistants for propositional logic with quantifiers. Practical realizations of these ideas can be seen in systems such as Lean, Agda, and Idris~2, where programming and formal verification are tightly integrated. The dependent type calculus introduces $\Pi$-types of the form: $(x:A) \rightarrow B$, where $x$ can appear in the definition of $B$, apart from the regular function type $A \rightarrow B$. $x$ is only known when we apply the function on an argument. The actual value of the argument will then be substituted for $x$ in $B$, to obtain the return type. 
 
-Language workbenches are environments designed to support the systematic development of programming languages \autocite{erdweg_evaluating_2015} by providing reusable infrastructure for common compiler and tooling concerns. They exist primarily to reduce the engineering overhead associated with implementing languages from scratch, particularly for very common features such as parsing, name binding, type checking, and editor support. By elevating these concerns to declarative specifications, language workbenches allow language designers to focus on semantics rather than implementation details. Language workbenches enable rapid prototyping, facilitate experimentation with advanced type systems, and promote correctness through well-defined meta-languages and tooling. As an example, in the case of dependent type languages, building all the necessary tooling from scratch is a difficult task. Type checking in such systems often involves combining mechanisms like higher-order unification, weak head normalization and careful handling of variable binding and scope. Language workbenches provide abstractions that address these challenges. Core concerns such as name resolution, binding structure, and unification are treated as first-class components, allowing language designers to focus on the semantics of their type systems rather than low-level implementation details.
+For a dependently typed language to be considered practical, it needs to perform as much type inference as possible to avoid requiring
+programmers to provide information that can be reconstructed from context.
+Consider the function that adds an element to the head of a length-indexed
+vector:
+\[
+    \mathit{cons} :
+    (A : \mathit{Set}) \rightarrow
+    (n : \mathit{Nat}) \rightarrow
+    A \rightarrow
+    \mathit{Vec}\ A\ n \rightarrow
+    \mathit{Vec}\ A\ (\mathit{suc}\ n).
+\]
+The higher-order nature of this problem follows from the binding structure of
+dependent types. In a dependent function type $(x : A) \to B$, the variable
+$x$ is in scope in $B$, so the result of inference may itself depend on locally
+bound variables. Consequently, solving an equality between types can require
+inferring not only a term, but a function of the variables that are currently
+in scope which is more complex than first-order unification and motivates the use of higher-order unification \autocite{mazzoli2016typechecking,miller_logic_1991}.
 
-Spoofax \autocite{6898704}, is a language workbench developed at TU Delft.
-Type checking in Spoofax is done using Statix \autocite{van_antwerpen_scopes_2018}, a constraint-based language designed for expressing typing and name resolution rules declaratively. The main contribution of Statix is name resolution through scope graphs, which are graph-based representation of scopes and the relations between them. Scope graphs are particularly well suited for imports, mutual references and other types of non-lexical scoping. Since scope graphs are used to model scoping, it is not possible to create function terms in Statix. Likewise, the semantics of substitution must be explicitly encoded by the programmer.
+Binding introduced by dependent function types is, however, only one aspect of
+name binding in a programming language. Name resolution may also depend on
+modules, imports, inheritance, qualified names, and forward references. These
+visibility relations do not necessarily follow the lexical nesting of the
+abstract syntax tree
+\autocite{4bf44aa1779c4a968c555e1b54e16119,neron_extensible_2015}. A language
+implementation for dependent types has to support both the binding
+structure that arises inside terms and types and the broader name-resolution
+mechanisms of the surrounding programming language.
 
-On the other hand, other approaches to name binding have been studied. Name binding can be represented more closely to lambda calculus via higher order abstract syntax (HOAS) \autocite{pfenning_higher-order_nodate}. The core idea of HOAS is that functions (lambda abstractions) are first class terms. They can be created by the user and they can also be deconstructed. A system implementing HOAS will give the user the ability to go under binders, by generating fresh placeholders for the bound name. Besides generating fresh names, a HOAS system will provide the implication operator that acts as an implicit context. An expression of the form $P \Rightarrow F$ can be viewed as "If predicate P holds, then prove F". This paradigm can be used for type checking, to emulate typing contexts very closely to their formal definition: "Assuming that variable X has type A, prove the body has type B".
+Language workbenches provide a good setting in which to implement these concerns. They are environments designed to support the development of programming languages \autocite{erdweg_evaluating_2015} by providing reusable infrastructure for common compiler and tooling concerns. They exist primarily to reduce the engineering overhead associated with implementing languages from scratch, particularly for very common features such as parsing, name binding, type checking, and editor support. By elevating these concerns to declarative specifications, language workbenches allow language designers to focus on semantics rather than implementation details. Language workbenches enable rapid prototyping, facilitate experimentation with advanced type systems, and help correctness through well-defined meta-languages and tooling. As an example, in the case of dependent type languages, building all the necessary tooling from scratch is a difficult task. Type checking in such systems often involves combining mechanisms like higher-order unification, weak head normalization and careful handling of variable binding and scope. Language workbenches provide abstractions that address these challenges. Core concerns such as name resolution, binding structure, and unification are treated as first-class components, allowing language designers to focus on the semantics of their type systems rather than low-level implementation details.
+
+Spoofax \cite{6898704} is a language workbench developed at TU Delft.
+Static semantics in Spoofax can be specified using Statix \cite{van_antwerpen_scopes_2018},
+a constraint-based language for expressing typing and name-resolution rules.
+Statix represents name binding explicitly through scope graphs. Scope graphs
+model scopes as nodes and visibility relations as labeled edges, allowing
+lexical and non-lexical name-resolution mechanisms to be expressed within the
+same framework \cite{van_antwerpen_scopes_2018}. This makes them particularly suitable for
+features such as imports, qualified references, and forward references.
+
+However, the term language and built-in unification mechanism of Statix are
+first-order. Binding structure is represented externally through the scope
+graph rather than through binders in the meta-language. As a result,
+operations needed by dependent type checking, such as substitution under
+binders and higher-order unification of metavariables, cannot simply be
+delegated to the host language and must instead be expressed explicitly.
+
+A different approach is Higher-Order Abstract Syntax (HOAS)
+\cite{pfenning_higher-order_nodate}, where object language binders are represented using
+binders of the meta-language. In higher-order logic programming systems, this
+representation provides direct support for operations such as capture-avoiding
+substitution and higher-order unification. The trade-off is that such binding
+mechanisms are fundamentally lexical, whereas scope graphs are designed to
+represent more general visibility relations between scopes.
 
 HOAS and Scope Graphs differ fundamentally in how they treat binding and unification. Since HOAS follows the syntax of simply typed lambda calculus, names are bound only by constructing a lambda abstraction while properties are asserted via implication. In return, users get capture-avoiding substitution, lexical scoping and higher order unification for free. While scope graphs provide strong support for modular and non-lexical scoping, they do not natively provide higher-order pattern unification, which is central to dependently typed systems.
 
-This friction motivates the central question of this thesis: can higher-order pattern unification be integrated with a scope-graph-based constraint system in a principled and practical way (RQ1)? Furthermore, how does such an approach compare to higher-order logic programming systems when implementing a dependently typed language (RQ2)?
+This issue motivates the central question of this thesis: can higher-order pattern unification be integrated with a scope-graph-based constraint system in a principled and practical way (RQ1)? Furthermore, how does such an approach compare to higher-order logic programming systems when implementing a dependently typed language (RQ2)?
 
 To address these questions, we design and evaluate a higher-order pattern unification algorithm tailored to a scope-graph-based setting, and analyze its implications for implementing dependently typed languages in Spoofax.
 
@@ -24,7 +71,7 @@ To address these questions, we design and evaluate a higher-order pattern unific
 This thesis addresses two research questions and makes the following contributions.
 
 \paragraph{Higher-order pattern unification in scope-graph systems.}
-We design and formalize an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix, demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
+We implement and study an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix, demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
 
 \paragraph{Comparison of implementation paradigms for dependent typing.}
-We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems. The analysis examines differences in expressivity and computability, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping. This clarifies the trade-offs between meta-level binding mechanisms and explicit scope representations when implementing practical dependently typed languages.
+We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems. The analysis qualitatively compares implementation trade-offs, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping.

@@ -2,7 +2,7 @@
 
 \section{Language}
 The language implemented in Statix showcases the powerful features of dependent types. The core of the language is a lambda calculus with Pi types and let bindings. Concretely the syntax of our language is defined using the SDF3 syntax:
-\begin{lstlisting}[caption={Necesssary syntax for dependent types}, language=SDF3]
+\begin{lstlisting}[caption={Necessary syntax for dependent types}, language=SDF3]
 Expr.Let = [let [ID] = [Expr]; [Expr]]
 Expr.Set = "Set"
 Expr.Var = ID
@@ -12,7 +12,7 @@ Expr.App = Expr Expr {left}
 Expr.Ann = Expr "::" Expr
 \end{lstlisting}
 
-\noindent The language is formed from lambda abstractions, applications, variables, let bindings, pi types and type annotations. The later are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
+\noindent The language is formed from lambda abstractions, applications, variables, let bindings, pi types and type annotations. The latter are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
 The two routines required for bidirectional typing have the following signatures:
 \begin{lstlisting}
 infer : scope * Expr -> (Expr * Expr)

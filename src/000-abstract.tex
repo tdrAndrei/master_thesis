@@ -1,3 +1,23 @@
-% !TEX root = document.tex
+This thesis investigates whether higher order pattern unification can be
+integrated with a type checker that represents name binding using scope graphs.
+The work is carried out in Statix, a constraint language in the Spoofax
+language workbench. Statix uses scope graphs for declarative name resolution
+and provides first order unification as part of its constraint solver.
+However, inference in dependently typed languages can require higher order
+unification when the inferred solution depends on variables introduced by
+surrounding binders.
 
-This work researches the possibility of using higher order unification in a typechecker that uses scope graphs. Scope graphs are a novel data structure for name resolution created by Statix. The Statix language is part of the language workbench Spoofax, created at TuDelft, and enables users to write a typechecker for their language. Out of the box, Statix can do first order unification between terms from the user's language which is enough to typecheck the majority of type system. However, dependently typed languages present a bigger challenge, which arises from type checking definitions with implicit arguments or pattern matching. We will propose a new unification algorithm for Statix, that is able to unify higher order terms (lambda functions) while using scope graphs for name resolution.
+We implement a small dependently typed language in Statix and extend its type
+checker with higher order pattern unification. Scope graph information is used
+to determine which bound variables may occur in a solution and to construct
+well scoped higher order solutions. The implementation supports the pattern
+cases considered in this thesis, but does not support postponement of
+constraints that may become solvable later.
+
+We also implement the core of the same language in Elpi using Higher Order
+Abstract Syntax. The two implementations are used to compare explicit
+scope based binding with binding provided by a higher order meta language.
+The comparison shows that Elpi provides direct support for lexical binding,
+substitution, and higher order unification, while scope graphs provide a
+direct representation of non lexical name resolution such as modules,
+qualified references, and forward references.

@@ -1,4 +1,86 @@
 % !TEX root = document.tex
 \chapter{\label{chap:conclusion}Conclusion}
 
-Conclusion here.
+This thesis investigated whether higher-order pattern unification can be
+combined with scope-graph-based name binding in the implementation of a
+dependently typed language. To study this question, we implemented a small
+dependently typed language in Statix and extended its type checker with higher-order inference. We subsequently implemented the
+core of the same language in Elpi in order to compare the scope-graph
+representation with Higher-Order Abstract Syntax.
+
+With respect to RQ1, the Statix implementation shows that scope graphs can
+provide the binding information required by higher-order pattern unification.
+The variables available to a solution can be obtained from the
+scope graph and used to construct well-scoped higher-order solutions.
+Metavariables additionally require state that is visible independently of the
+lexical scope in which a solution is discovered, which led to the separate
+metavariable scope introduced in Chapter~5. The resulting implementation
+supports the higher-order pattern cases considered in this thesis, although
+the lack of constraint postponement restricts the set of unification problems
+that can be handled.
+
+With respect to RQ2, the comparison with Elpi shows that the two approaches
+place complexity in different parts of the language implementation. HOAS
+delegates lexical binding, capture-avoiding substitution, and higher-order
+unification to the meta-language. Scope graphs require these operations to be
+made more explicit, but provide very good support for non-lexical name
+resolution, including modules, qualified references, and forward references.
+
+Overall, this work shows that higher-order pattern unification is compatible
+with a scope-graph-based representation of name binding. The main remaining
+limitations arise not from scope graphs themselves, but from the additional
+solver behavior required by a more complete dependent type elaborator.
+
+\section{Future Work}
+\label{sec:future-work}
+
+There are several directions in which the implementation presented in this
+thesis could be extended.
+
+\paragraph{Constraint postponement and reactivation.}
+The most immediate limitation of the current higher-order unification
+procedure is the absence of constraint postponement. A constraint that is
+outside the pattern fragment cannot necessarily be classified permanently as
+unsolvable since later instantiations may simplify it into a pattern problem.
+Supporting this behavior would require a mechanism for suspending
+higher-order constraints and reactivating them when one of the metavariables
+on which they depend is instantiated. Such a mechanism would considerably
+reduce the number of constraints that the current implementation has to reject
+eagerly.
+
+\paragraph{Pruning and more complete higher-order pattern unification.}
+Another possible extension is pruning. Sometimes a unification problem cannot
+be solved because the proposed solution for a metavariable would refer to a
+variable that was not in scope when that metavariable was introduced.
+However, if the second metavariable does not actually need to depend on the variable, its context can be reduced so that the offending dependency disappears. The original unification problem may then become solvable. Implementing this pruning step would allow the current solver to handle more higher-order constraints.
+
+\paragraph{Closer integration with the Statix solver.}
+The current implementation represents metavariable state explicitly through a
+separate chain of scopes that is threaded through the type-checking rules.
+This design was necessary because ordinary scope-graph bindings are immutable
+and because the state of Statix unification variables cannot be inspected in
+the way required by the implementation. An interesting direction would be to
+investigate whether higher-order metavariables could be supported more
+directly by the Statix solver. In particular, allowing a Statix unification variable to "see" a local context or exposing mechanisms for observing
+the state of unification variables could remove part of the very explicit
+state management currently required.
+
+\section{Reproducibility}
+The implementation artifacts developed as part of this thesis consist of an
+Eclipse project containing the Statix specification of the dependently typed
+language, together with a set of Elpi source files used for the alternative
+HOAS-based implementation discussed in Chapter~6.
+
+The Statix artifact contains the language definition, type-checking rules,
+scope-graph-based name resolution, metavariable handling, and higher-order
+pattern unification described in Chapters~4 and~5. The project can be opened
+in the Spoofax/Eclipse development environment and includes the examples and
+tests used during development to validate the implementation. The Elpi
+artifact contains the corresponding core language implementation used for the
+comparison with Higher-Order Abstract Syntax.
+
+\section{AI usage}
+Generative AI tools were used during the preparation of this thesis, limited to tasks such as improving my own wording, formatting figures, LaTeX code and researching documentation or new papers to read.
+They were not used as an authoritative source of scientific information.
+AI was not used to develop the theory behind the metavariable scoping in Statix, or the Statix code. For the ELPI implementation of the language, it was used to find built-in functions that can apply multiple arguments to an ELPI metavariable.
+In general, technical claims, definitions, algorithms, and comparisons included in this thesis were verified against the cited literature. 

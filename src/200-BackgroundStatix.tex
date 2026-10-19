@@ -23,10 +23,7 @@ Dependent type systems, as introduced by Martin-L{\"o}f \autocite{martinlof1984i
 In the simply typed calculus, a function type $A \to B$ describes functions that
 take an argument of type $A$ and return a result of type $B$. The return type
 $B$ is fixed and cannot refer to the value of the argument. A \emph{dependent
-  function type} (or \emph{Pi type}), written $\Pi\,(x : A).\, B(x)$ generalizes this with the return type $B(x)$ being able to mention the argument $x$. When the return type does not depend on the argument, the Pi type reduces to an ordinary function type $A \to B$. As a first example, consider a function \texttt{default} : $\Pi\,(A : \text{Type}).\, A$
-that returns a default value for a given type. The return type $A$ refers to the
-value of the first argument. This cannot be expressed with an ordinary
-function type in simply typed calculus. 
+  function type} (or \emph{Pi type}), written $\Pi\,(x : A).\, B(x)$ generalizes this with the return type $B(x)$ being able to mention the argument $x$. When the return type does not depend on the argument, the Pi type reduces to an ordinary function type $A \to B$. As a first example, consider a function \texttt{zeros} : $\Pi\,(x : \mathsf{Int}).\, \mathsf{Vec} \  \mathsf{Int} \ x$, which produces a vector of zeros with length $x$. This cannot be expressed at the type level with an ordinary function type in simply typed calculus. 
 
 In practice, many type arguments can be inferred from context. Most dependently typed languages allow such arguments to be marked as \emph{implicit}, meaning they are automatically filled in by the type checker. The canonical example is the identity function, which can be given the type $\text{id} : \{A : \text{Type}\} \to A \to A$, where the braces indicate that $A$ is implicit. The caller writes $\text{id}\; 42$ rather than
 $\text{id}\; \mathbb{N}\; 42$, and the type checker infers that $A = \mathbb{N}$.
@@ -54,8 +51,8 @@ data IsNonNull {A : Set} : Option A → Set where
 unwrap : {A : Set} → (m : Option A) → IsNonNull m → A
 unwrap (some x) is-non-null = x
 
-is-non-null :: IsNonNull (some 42) -- will compile
-is-non-null :: IsNonNull null -- won't compile because the type has 0 inhabitants
+is-non-null : IsNonNull (some 42) -- will compile
+is-non-null : IsNonNull null -- won't compile because the type has 0 inhabitants
 \end{lstlisting}
 
 In this example, the non-null invariant is required by the \texttt{unwrap} function. The type checker will accept the expression \texttt{unwrap x proof} in two cases: a) x is constructed with \texttt{some} at the call site or b) we receive the proof that x is not null from another function. 
