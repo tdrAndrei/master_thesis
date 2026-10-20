@@ -3,7 +3,7 @@
 \chapter{\label{chap:introduction}Introduction}
 Having a strong type system has become a defining characteristic of many modern programming languages. Beyond basic error detection, expressive type systems allow developers to encode invariants directly into the structure of their programs, shifting entire classes of bugs from runtime to compile time. Types serve as a precise form of documentation, making assumptions and guarantees explicit and enforceable.
 
-Dependent type systems represent a significant step in this progression. They extend conventional type systems by allowing types to depend on values. This added expressiveness enables the encoding of precise specifications. For instance, types that capture the exact length of a list or enforce domain-specific constraints. Through the Curry-Howard correspondence \autocite{reis_curry-howard_nodate}, such type systems can express logical proofs. Writing a well-typed program becomes equivalent to constructing a proof of a logical proposition. As a result, languages with dependent types can function as proof assistants for propositional logic with quantifiers. Practical realizations of these ideas can be seen in systems such as Lean, Agda, and Idris~2, where programming and formal verification are tightly integrated. The dependent type calculus introduces $\Pi$-types of the form: $(x:A) \rightarrow B$, where $x$ can appear in the definition of $B$, apart from the regular function type $A \rightarrow B$. $x$ is only known when we apply the function on an argument. The actual value of the argument will then be substituted for $x$ in $B$, to obtain the return type. 
+Dependent type systems represent a significant step in this progression. They extend conventional type systems by allowing types to depend on values. This added expressiveness enables the encoding of precise specifications. This includes, for instance, types that capture the exact length of a list or enforce domain-specific constraints. Through the Curry-Howard correspondence \autocite{reis_curry-howard_nodate}, such type systems can express logical proofs. Writing a well-typed program becomes equivalent to constructing a proof of a logical proposition. As a result, languages with dependent types can function as proof assistants for propositional logic with quantifiers. Practical realizations of these ideas can be seen in systems such as Lean, Agda, and Idris~2, where programming and formal verification are tightly integrated. The dependent type calculus introduces $\Pi$-types of the form: $(x:A) \rightarrow B$, where $x$ can appear in the definition of $B$, apart from the regular function type $A \rightarrow B$. $x$ is only known when we apply the function on an argument. The actual value of the argument will then be substituted for $x$ in $B$, to obtain the return type. 
 
 For a dependently typed language to be considered practical, it needs to perform as much type inference as possible to avoid requiring
 programmers to provide information that can be reconstructed from context.
@@ -17,12 +17,14 @@ vector:
     \mathit{Vec}\ A\ n \rightarrow
     \mathit{Vec}\ A\ (\mathit{suc}\ n).
 \]
-The higher-order nature of this problem follows from the binding structure of
-dependent types. In a dependent function type $(x : A) \to B$, the variable
-$x$ is in scope in $B$, so the result of inference may itself depend on locally
-bound variables. Consequently, solving an equality between types can require
-inferring not only a term, but a function of the variables that are currently
-in scope which is more complex than first-order unification and motivates the use of higher-order unification \autocite{mazzoli2016typechecking,miller_logic_1991}.
+
+The arguments $A$ and $n$ describe the element type and length of the input
+vector. Requiring both arguments at every application would be cumbersome, so
+dependently typed languages commonly allow them to be omitted when they can be
+recovered from the remaining arguments. Recovering such arguments requires the type checker to compare dependent
+types. For example, if the final argument has type $\mathit{Vec}\ A\ n$, then
+the omitted length argument must be chosen so that the expected input type of
+$\mathit{cons}$ agrees with that type. In general, the inferred term may depend on variables introduced by surrounding binders. Solving an equality between types can require inferring not only a term, but a function of the variables currently in scope which is more complex than first-order unification and motivates the use of higher-order unification \autocite{mazzoli2016typechecking,miller_logic_1991}.
 
 Binding introduced by dependent function types is, however, only one aspect of
 name binding in a programming language. Name resolution may also depend on
@@ -71,7 +73,7 @@ To address these questions, we design and evaluate a higher-order pattern unific
 This thesis addresses two research questions and makes the following contributions.
 
 \paragraph{Higher-order pattern unification in scope-graph systems.}
-We implement and study an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix, demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
+We implement and study an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix (chapters \ref{chap:Language} and \ref{chap:Inference}), demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
 
 \paragraph{Comparison of implementation paradigms for dependent typing.}
-We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems. The analysis qualitatively compares implementation trade-offs, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping.
+We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems in chapter \ref{chap:ScopeGraphs}. The analysis qualitatively compares implementation trade-offs, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping.
