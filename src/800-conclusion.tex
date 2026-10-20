@@ -52,7 +52,7 @@ eagerly.
 Another possible extension is pruning. Sometimes a unification problem cannot
 be solved because the proposed solution for a metavariable would refer to a
 variable that was not in scope when that metavariable was introduced.
-However, if the second metavariable does not actually need to depend on the variable, its context can be reduced so that the offending dependency disappears. The original unification problem may then become solvable. Implementing this pruning step would allow the current solver to handle more higher-order constraints.
+However, the offending variable may occur only as an argument to another metavariable. If that metavariable does not actually need to depend on the variable, its context can be reduced so that the offending dependency disappears. The original unification problem may then become solvable. Implementing this pruning step would allow the current solver to handle more higher-order constraints.
 
 \paragraph{Closer integration with the Statix solver.}
 The current implementation represents metavariable state explicitly through a
@@ -69,7 +69,7 @@ state management currently required.
 The implementation artifacts developed as part of this thesis consist of an
 Eclipse project containing the Statix specification of the dependently typed
 language, together with a set of Elpi source files used for the alternative
-HOAS-based implementation discussed in Chapter~6.
+HOAS-based implementation discussed in Chapter~6. They can be found here: \url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
 
 The Statix artifact contains the language definition, type-checking rules,
 scope-graph-based name resolution, metavariable handling, and higher-order
