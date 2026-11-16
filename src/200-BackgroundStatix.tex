@@ -1,6 +1,6 @@
-\chapter{\label{chap:statix}Background}
+\section{\label{sec:statix}Background}
 
-In this chapter we will argue about the importance of rigorous type systems, such as dependent type theory. We will also explain the unique binding requirements of this system and how it can be used to provide better editor services. Furthermore, we explain the theory behind two approaches to name binding: scope graphs and higher order abstract syntax.
+In this section we will argue about the importance of rigorous type systems, such as dependent type theory. We will also explain the unique binding requirements of this system and how it can be used to provide better editor services. Furthermore, we explain the theory behind two approaches to name binding: scope graphs and higher order abstract syntax.
 
 A lot of effort has been made towards improving type safety of new languages. The benefits of strong type systems are easy to see: self-documenting code, more bugs prevented at compile time and stronger invariants. The latter is becoming increasingly important. If an identifier has a type, the programmer can make certain assumptions about its value. For example, in Rust, an invariant of reference values is that they can never be dangling. This property is guaranteed at compile time by the borrow checker. Furthermore, lifetime annotations in struct definitions such as:
 \begin{lstlisting}[language=Rust]
@@ -16,10 +16,10 @@ if x != null {
 \end{lstlisting}
 The compiler's ability to check invariants strongly correlates with the safety of the code. However, in most conventional type systems, the set of invariants that can be checked is fixed by the compiler's implementation and users have no way to extend it.
 
-\section{Dependent Types}
+\subsection{Dependent Types}
 Dependent type systems, as introduced by Martin-L{\"o}f \autocite{martinlof1984intuitionistic}, can address this challenge. In a dependently typed language, types may depend on values, enabling programmers to express and verify arbitrary invariants within the type system itself. Moreover, the ability to bind arbitrary values within a type induces the need for type level computation (reduction). In the following sections we will rely on Agda \autocite{norell2007practical} for our examples, since it is an easy to read language that implements Martin-L{\"o}f's theory of dependent types.
 
-\subsection{Function types and Pi types.}
+\subsubsection{Function types and Pi types.}
 In the simply typed calculus, a function type $A \to B$ describes functions that
 take an argument of type $A$ and return a result of type $B$. The return type
 $B$ is fixed and cannot refer to the value of the argument. A \emph{dependent
@@ -28,7 +28,7 @@ $B$ is fixed and cannot refer to the value of the argument. A \emph{dependent
 In practice, many type arguments can be inferred from context. Most dependently typed languages allow such arguments to be marked as \emph{implicit}, meaning they are automatically filled in by the type checker. The canonical example is the identity function, which can be given the type $\text{id} : \{A : \text{Type}\} \to A \to A$, where the braces indicate that $A$ is implicit. The caller writes $\text{id}\; 42$ rather than
 $\text{id}\; \mathbb{N}\; 42$, and the type checker infers that $A = \mathbb{N}$. This ability to infer implicit arguments is in fact a central motivation for the thesis. 
 
-\subsection{Data types and constructors.}
+\subsubsection{Data types and constructors.}
 Dependently typed languages support \emph{indexed} data types, whose type
 signature carries information about the values it classifies. A data type may
 have \emph{parameters}, which are fixed across all constructors, and
@@ -59,7 +59,7 @@ In this example, the non-null invariant is required by the \texttt{unwrap} funct
 
 One of the most important feature of dependent type theory, that allows us to use values (or any terms for that matter) at compile time is the particular name binding structure. In the previous example, \texttt{unwrap} can use the \textbf{value} of its first argument in the type signature, by binding it to the name $m$.
 
-\section{Name binding}
+\subsection{Name binding}
 This section will give an overview of name bindings in the context of static analysis. We will also discuss the relation between scoping and name binding.
 
 In the literature, there are many types of name binding, but this work will focus on static name binding (binding that happens at compile time). In static analysis of programs it is common to infer information about a name when it is first introduced (\textit{declared}), while later \textit{references} of the identifier can re-use the collected information or refine it \autocite{4bf44aa1779c4a968c555e1b54e16119}. For well-formed program all references must be \textit{bound} to a single declaration. However, in many programming languages used in practice, it is not always obvious how to map a reference to its declaration. This process is known as \textit{name resolution} \autocite{4bf44aa1779c4a968c555e1b54e16119}.
@@ -68,8 +68,8 @@ A common way to represent the result of name resolution is through \emph{def-use
 
 The rules that govern name resolution are determined by the scoping discipline of the language. The most common discipline is \emph{lexical scoping}, where the scope of a name is determined by its position in the AST. In a lexically scoped language, an inner scope may \emph{shadow} a declaration from an enclosing scope, and resolution proceeds outward from the reference site until a matching declaration is found. Lexical scoping was popularized by Algol 60 and is used by the majority of modern programming languages \autocite{scott_programming_2015}. However, many practical languages also feature \emph{non-lexical} scoping mechanisms that cannot be explained solely by the AST hierarchy. Examples include module imports, class inheritance, qualified names, and forward-references. Non-lexical scoping increases the complexity of type checking. Since the scoping rules don't follow the hierarchy of the AST neither can the type checker. For instance, to type check forward references, the type checker cannot simply follow the AST, as it will encounter references of names that have not yet been declared. To account for this it should collect and process all available declarations within a scope before proceeding. It follows that scoping and name resolution are tightly coupled with the operational semantics of a type checker. In most languages, non-lexical scoping is handled in an ad-hoc manner embedded in the type checker and other static analysis. \autocite{neron_extensible_2015}.
 
-\section{Name binding in dependent types}
-A dependently typed language adds subtle complexities to the name binding and resolution process. One difference to a simply typed language is the ability to bind variables (of any type) in types. When defining a function $f$ with argument $x$, the variable $x$ is bound both in the body of $f$ and in its return type. Another challenge of name binding comes with inference. In dependently typed languages inference is complex and requires higher-order unification \autocite{mazzoli2016typechecking,demoura2015elaboration,abel_extensions_2018}. This complexity arises from the presence of binders at the type level. In particular, when unifying two types, the solution can depend on these binders and will generally have the form of a function. More details about this process and how it is integrated in type checking, are given in Chapter \ref{chap:hou}. 
+\subsection{Name binding in dependent types}
+A dependently typed language adds subtle complexities to the name binding and resolution process. One difference to a simply typed language is the ability to bind variables (of any type) in types. When defining a function $f$ with argument $x$, the variable $x$ is bound both in the body of $f$ and in its return type. Another challenge of name binding comes with inference. In dependently typed languages inference is complex and requires higher-order unification \autocite{mazzoli2016typechecking,demoura2015elaboration,abel_extensions_2018}. This complexity arises from the presence of binders at the type level. In particular, when unifying two types, the solution can depend on these binders and will generally have the form of a function. More details about this process and how it is integrated in type checking, are given in \cref{sec:hou}. 
 
 The most common approach to add inference is to create "holes" (metavariables) in places where a term must be inferred. Here, term refers to either a value or a type, since in this type system we should infer both. A familiar example (which won't work on dependent-types) is Hindley-Milner type inference, where fresh type variables represent unknown monotypes and first-order unification progressively determines their solutions. For every typeable expression, the Hindley-Milner inference algorithm computes a principal type scheme \autocite{milner1978theory,damas1982principal}. Unlike ordinary bound variables, metavariables are initially unsolved and carry only the information required to ensure that they are well-scoped and well-typed, such as their type or kind and the context in which they were introduced. As elaboration proceeds, uses of expressions containing metavariables generate unification constraints. Solving these constraints assigns \emph{solutions} to the metavariables, progressively refining the partial term until the missing information has been reconstructed \autocite{gundry2010typeinference,dunfield2013complete}.
 
@@ -79,12 +79,12 @@ Language implementations generally view type checking and constraint solving as 
   \item Type checker can publish a constraint for unifying two terms
   \item Type checker can give a term with "holes" and receive back a term with metavariables substituted for their current solutions (if they exist) from the solver
 \end{enumerate}
-Point 2. is perhaps vague. Does the type checker expect a response from the solver or does it just move on? This question motivates the existence of another approach for unification called \textit{dynamic pattern unification}, which will be further discussed in Section~\ref{section:outside_pattern_fragment}. The dynamic approach distinguishes between 3 states for constraints: solvable, impossible to solve or delayed. The latter suggests that constraints which come later might help us solve constraints we accumulated earlier.
+Point 2. is perhaps vague. Does the type checker expect a response from the solver or does it just move on? This question motivates the existence of another approach for unification called \textit{dynamic pattern unification}, which will be further discussed in \cref{section:outside_pattern_fragment}. The dynamic approach distinguishes between 3 states for constraints: solvable, impossible to solve or delayed. The latter suggests that constraints which come later might help us solve constraints we accumulated earlier.
 
 As highlighted by point 3, the type checker needs to know information about a metavariable. We make a distinction between the scope in which a metavariable is created and the scope in which it is solved. If we strictly follow lexical scoping, the scope in which we query might not be a descendant of the scope in which we instantiate the metavariable. Therefore, metavariables and their solutions need to live in a global, mutable scope.
 
 
-\section{Scope Graphs}
+\subsection{Scope Graphs}
 
 Modern programming languages combine multiple scoping mechanisms, including lexical scoping induced by syntactic structure and non-lexical scoping arising from constructs such as imports, inheritance, or other visibility relations. Traditional formulations of name resolution, for instance based on hierarchical symbol tables, are well-suited for purely lexical scoping but become increasingly ad hoc when extended to accommodate such non-lexical mechanisms. Scope graphs provide a uniform representation in which both forms of scoping are modeled within a single formalism, by representing scopes as nodes in a graph and scoping relations as labeled edges.
 
@@ -92,7 +92,7 @@ Formally, a scope graph is a directed labeled graph $G = (S, E, D)$, where $S$ i
 
 Name resolution is defined as a path search problem over the scope graph. Given a reference to a name $x$ in a scope $s \in S$, resolution amounts to finding a declaration $d$ of $x$ in some scope $s'$ such that there exists a path from $s$ to $s'$ that satisfies a given resolution policy. Such a policy constrains the admissible sequences of edge labels and typically induces a preference ordering over paths in order to model shadowing. In particular, declarations that are reachable via preferred paths (for example, shorter paths or paths following specific edge labels) take precedence over others, ensuring that more local declarations shadow those that are more distant in the graph.
 
-\subsection{Statix}
+\subsubsection{Statix}
 
 The ideas brought by scope graphs have been implemented in Statix, which is a constraint-based language used in the Spoofax language workbench for
 specifying type systems and name resolution declaratively. Rather than constructing the scope graph procedurally, one specifies constraints that introduce scopes, declarations, and edges, as well as constraints that require certain references to resolve to declarations. Concretely, scope construction is expressed using constraints that generate fresh scopes, introduce declarations of names in scopes, and relate scopes via labeled edges. Name resolution is expressed by constraints of the form $\texttt{resolve}(s, x) = d$, requiring that the reference to $x$ in scope $s$ resolves to declaration $d$ according to the resolution policy induced by the scope graph.
@@ -102,7 +102,7 @@ This separation enables flexible modeling of complex scoping mechanisms, includi
 
 An advantage of Statix is that scope graph constraints interact with other semantic constraints, such as equality or typing constraints. For example, resolving a reference yields a declaration whose associated semantic information, such as a type, may be subject to further constraints. As a result, name resolution is not treated as a separate phase, but is instead integrated into a unified constraint system. Constraint solving proceeds by incrementally refining a partial scope graph and a set of constraints. Resolution constraints are solved only when the relevant portion of the scope graph is sufficiently closed to guarantee a stable result (i.e. Statix knows we won't extend that scope in the future). Otherwise, they are suspended. As additional scopes, edges, and declarations are introduced, suspended resolution constraints may become solvable. Therefore, name resolution is specified as a global consistency condition rather than an eager operation. Moreover, these semantics allow a type checker to deal with non-lexical scoping such as forward references. We can issue a constraint that a reference should be resolvable before we create a declaration for that name. The constraint should be delayed until we encounter the declaration.
 
-\section{Higher-Order Abstract Syntax}
+\subsection{Higher-Order Abstract Syntax}
 
 An alternative approach to modeling name binding is given by Higher-Order Abstract Syntax (HOAS), in which binding constructs of an object language are represented using the binding mechanisms of a meta-language (host language). Instead of representing scopes, declarations, and references explicitly, HOAS encodes binding structure directly using functions of the meta-language. The key idea is to represent object-language binders as meta-level functions. A bound variable is represented by a meta-level variable introduced by a function argument, and occurrences of that variable are represented by the same meta-level variable. As a result, substitution and $\alpha$-equivalence are handled implicitly by the meta-language, without requiring explicit definitions of these operations.
 

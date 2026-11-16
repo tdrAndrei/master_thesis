@@ -1,6 +1,6 @@
-\chapter{\label{chap:Language}A Language with Dependent Types in Statix}
+\section{\label{sec:Language}A Language with Dependent Types in Statix}
 
-\section{Language}
+\subsection{Language}
 The language implemented in Statix showcases the powerful features of dependent types. The core of the language is a lambda calculus with Pi types and let bindings. Concretely the syntax of our language is defined using the SDF3 syntax:
 \begin{lstlisting}[caption={Necessary syntax for dependent types}, language=SDF3]
 Expr.Let = [let [ID] = [Expr]; [Expr]]
@@ -18,7 +18,7 @@ The two routines required for bidirectional typing have the following signatures
 infer : scope * Expr -> (Expr * Expr)
 check :  scope * Expr * Expr -> Expr
 \end{lstlisting}
-Both infer and check take the current scope and an expression from the object language. \texttt{check} also takes a type as an additional argument. Normally, infer would return the inferred type, while check wouldn't return anything since it would either succeed or fail. The extra \texttt{Expr} comes from the fact that both relations \textit{refine} their input terms: variables get replaced with fresh variables with globally unique names. In chapter \ref{chap:Inference} we will also show how placeholders "\_" are refined to metavariables. Lastly, the following example represents a valid program in our language:
+Both infer and check take the current scope and an expression from the object language. \texttt{check} also takes a type as an additional argument. Normally, infer would return the inferred type, while check wouldn't return anything since it would either succeed or fail. The extra \texttt{Expr} comes from the fact that both relations \textit{refine} their input terms: variables get replaced with fresh variables with globally unique names. In \cref{sec:Inference} we will also show how placeholders "\_" are refined to metavariables. Lastly, the following example represents a valid program in our language:
 \begin{lstlisting}
 (\T.\x. x) :: (T : Set) -> (t : T) -> T
 \end{lstlisting}
@@ -62,24 +62,23 @@ We are given an annotated lambda term \texttt{\textbackslash T.\textbackslash x.
   {s \vdash e \Downarrow T \leadsto e'}
 \end{mathpar}
 
-\section{Variables and substitution}
+\subsection{Variables and substitution}
 
-As outlined in chapter \ref{chap:statix}, name binding in dependent types is challenging in the context of type checking. A type checker needs to store a context (information about variables and their \textbf{types}) in addition to performing beta reduction, which requires substitution of \textbf{values}. \par
+As outlined in \cref{sec:statix}, name binding in dependent types is challenging in the context of type checking. A type checker needs to store a context (information about variables and their \textbf{types}) in addition to performing beta reduction, which requires substitution of \textbf{values}. \par
 A context is represented as an ordered list of associations between names and types:  
 $$ \Delta = (x, A) :: \Delta \hspace{1cm} x : A, A : Set $$
 Entries in the context represent the declaration of a variable, because we can infer a variable's type when it is introduced in the scope. Later references of that variable name should resolve to its declaration entry. In languages with name shadowing a context will carry entries that have the same variable names. Then the question is to which entry should a reference resolve to. In the lexical scoping discipline a reference should resolve to the first entry in the context (added latest) that has the same name as itself. Our implementation will emulate this behavior using scope graphs. \par
 In Statix we will implement lexical scoping by creating descendant scopes that reference their parent via \textbf{P} edges. For example, the following program will generate a scope graph:
 
-\begin{lstlisting}[caption={let introduces a scope}]
+\begin{lstlisting}[caption={let introduces a scope}, label=listing:smalllet]
   let x = Set;
   x :: Set
 \end{lstlisting}
-\label{listing:smalllet}
 
 
 \begin{figure}[!ht]
 \centering
-\resizebox{0.3\textwidth}{!}{%
+\resizebox{0.3\linewidth}{!}{%
 \begin{circuitikz}
 \tikzstyle{every node}=[font=\fontsize{9.1pt}{11.8pt}\selectfont]
 \draw  (2.375,11.5) circle (0.875cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont s1} ;
@@ -90,7 +89,7 @@ In Statix we will implement lexical scoping by creating descendant scopes that r
 \draw [-{Square[scale=1.5]}, ] (2.375,12.375) -- (2.375,13.125);
 \end{circuitikz}
 }%
-\caption{Scope graph of listing \ref{listing:smalllet}}
+\caption{Scope graph of \cref{listing:smalllet}}
 \label{fig:my_label}
 \end{figure}
 
@@ -103,7 +102,7 @@ In Statix we will implement lexical scoping by creating descendant scopes that r
 
 \noindent This scope graph query is presented similarly to the "Scopes as types" paper \autocite{van_antwerpen_scopes_2018}, where scope graph queries were formalized. The query starts from scope $s$ and follows paths described by the regular expression \(P^*\) searching a relation labelled \(\mathsf{hasTy}\) for an identifier \(id\) with the condition that it is the same as $x$. If such a declaration is found, the associated type \(ty\) is returned. The same mechanism can account for lexical nesting, shadowing, imports, and other name-resolution features while preserving the connection between variables in the program and their declarations.
 
-\paragraph{Substitutions} Besides keeping track of the typing context, the checker must also store substitutions. Consider a continuation of example \ref{listing:smalllet}, where \texttt{x} is used in a type:
+\paragraph{Substitutions} Besides keeping track of the typing context, the checker must also store substitutions. Consider a continuation of \cref{listing:smalllet}, where \texttt{x} is used in a type:
 
 \begin{lstlisting}
   let x = Set;
@@ -187,7 +186,7 @@ De Bruijn indices:
 \end{align*}
 The binder \texttt{y} and the free variable \(\texttt{y}\) are converted to different identifiers, even though they may have the same surface spelling. Therefore, the free variable remains free after substitution.
 
-\section{Beta reduction}
+\subsection{Beta reduction}
 
 For the type checker we require 2 important routines: reducing terms to weak head normal form (whnf) and to their normal form. 
 
@@ -430,7 +429,7 @@ f 1 2
 In the example above, the resulting type from the application \texttt{f 1 2} is \texttt{(Fin 1, Fin 2)}. If we were to only convert to whnf, the type would be \texttt{(Fin x, Fin y)} together with a scope where x is bound to 1 and y to 2. We therefore prefer to substitute whatever was bound and return a type that doesn't need further reducing.
 
 
-\section{Equality}
+\subsection{Equality}
 Equality is an important feature of dependent type languages. In most programming languages, equality is a built-in feature of the underlying compiler. With non-dependently typed languages, it can be extended by the user, most commonly by implementing the $==$ operator or some form of equality trait. In code, equality is often formulated as a test that two different values are equal, returning a boolean answer. 
 
 \paragraph{Equality type constructor.} In contrast, dependently typed languages, such as Agda, model equality as formulated by Martin L{\"o}f. In his type theory \autocite{martinlof1984intuitionistic}, equality is a \textbf{type constructor} and not a function or operator. The equality type is defined as follows:
@@ -464,7 +463,7 @@ proof
 \end{lstlisting}
 In order to type check this example, we have to show that the $x$ we introduced is equal to itself. \texttt{refl} will trigger only the unification between $x$ and $x$, which will hold trivially.
 
-\section{Statements and forward references}
+\subsection{Statements and forward references}
 
 In the sections above, we have described all the terms in our language. Terms are used to write expressions, which is the syntactic unit that we can evaluate and type check. We introduce statements in the language to simplify certain aspects of name binding for the user. For instance, using only expressions to define a function with a body and a signature is cumbersome:
 \begin{lstlisting}
@@ -479,9 +478,9 @@ Stmt.Def = [def [ID] : [Expr]; [ID] = [Expr];]
 Stmt.Postulate = [postulate [ID]: [Expr];]
 \end{lstlisting}
 
-We now consider a program to be formed from zero or more statements, optionally followed by a single expression. The available statements are definitions and postulates. A postulate attaches a type to a name, without having to provide a value for the name. Beta reduction will treat this name as irreducible. On the other hand, definitions attach a body (a term) and a type to a given name. Listing \ref{listing:statements} shows how postulates and definitions can be used in our Statix implementation.
+We now consider a program to be formed from zero or more statements, optionally followed by a single expression. The available statements are definitions and postulates. A postulate attaches a type to a name, without having to provide a value for the name. Beta reduction will treat this name as irreducible. On the other hand, definitions attach a body (a term) and a type to a given name. \Cref{listing:statements} shows how postulates and definitions can be used in our Statix implementation.
 
-\begin{lstlisting}[caption=Example postulates and definitions]
+\begin{lstlisting}[caption=Example postulates and definitions, label=listing:statements]
 postulate Nat : Set;
 postulate z : Nat;
 postulate suc : Nat -> Nat;
@@ -490,7 +489,6 @@ def plusone : Nat -> Nat;
 plusone = \n. suc n;
 
 \end{lstlisting}
-\label{listing:statements}
 
 \paragraph{Scoping of statements.} Statements as we have presented them above are analogous to top level constructs in other programming languages. In C, a top level construct would be the definition of a function or a type. In Java, you could consider a class to be top level. There is a significant difference in how language implementations treat scoping at the top level. If we consider the C language, then top level definitions can only refer to definitions declared before them, akin to lexical scoping. Contrary to C, Java allows \textbf{forward-references}. In a Java compilation unit, it does not matter in which order the user introduces definitions. A top level construct is allowed to reference other visible constructs that are declared after it. This scoping behavior is not trivial to implement with ad-hoc compilers. Usually it involves splitting the type checking in 2 phases. The first pass, will pre-process the signatures of the statements and add them to the scope. The final pass would iterate over the statements and type check their bodies, with all the other signatures available in scope. 
 
@@ -526,7 +524,7 @@ queries from the body of \texttt{g} can be resumed and resolved. The body
 
 
 The order in which the constraints are emitted is different from the
-order in which all queries are resolved. For Listing~\ref{listing:forward-references},
+order in which all queries are resolved. For \Cref{listing:forward-references},
 the relevant events are:
 
 \[
@@ -566,17 +564,17 @@ cannot add either binding without first resolving the other. In that case, the
 constraints form a cyclic dependency at the type level. Such programs are not
 accepted by the current implementation.
 
-\section{Modules}
+\subsection{Modules}
 
 This section describes another feature of our language that uses non-lexical scoping: modules. The concept of modules exists in many programming languages, but their implementations differ significantly. In some languages, modules primarily serve as compilation units or packages. In others, they are used to express abstraction boundaries, interfaces, or parameterized components. For this thesis, we are interested in a narrower aspect of modules, namely the interaction with name resolution.
 
-\subsection{Modules as name-resolution constructs}
+\subsubsection{Modules as name-resolution constructs}
 
 Modules can be viewed as constructs that organize declarations into named scopes. From this perspective, a module is not primarily a file, package, or compilation unit, but a scope that can be referred to by name. The declarations inside a module may be accessed through qualified names, or they may be made available for unqualified lookup by opening the module.
 
 Lexical scoping alone is usually not sufficient to describe module lookup, because a declaration may become visible in a scope where it was not syntactically declared. For example, if a module is opened, names declared inside that module can be resolved from the opening scope. Similarly, a qualified name such as \texttt{A.B.x} requires lookup to proceed through a sequence of module scopes rather than through the usual lexical parent relation alone. The goal of this implementation is therefore not to model every aspect of module systems, but to capture the name-resolution behavior induced by modules. In particular, we focus on modules as named scopes, nested modules as hierarchical scopes, qualified names as path-based lookup, and open declarations as visibility links between scopes.
 
-\subsection{A core module fragment}
+\subsubsection{A core module fragment}
 
 Our Statix implementation of modules consists of declarations, nested modules, qualified access, and open statements. A module declaration introduces a named scope containing the statements in its body. For example, in the following program, the statement \texttt{x} belongs to the scope introduced by module \texttt{A}:
 
@@ -619,7 +617,7 @@ module C {
 \end{lstlisting}
 The declaration \texttt{open A} makes the exported declarations of \texttt{A} available for unqualified lookup inside \texttt{C}. After opening \texttt{A}, the name \texttt{x} can be resolved in \texttt{C}. This is the main source of non-lexical scoping in the module implementation since \texttt{A} is not lexical parent of \texttt{C}.
 
-\subsection{Scope-graph representation}
+\subsubsection{Scope-graph representation}
 
 To support module declarations and openings, we have to adapt the existing scope graph edges and queries. Firstly, it is worth mentioning that declaring or opening a module are both statements in our language:
 \begin{lstlisting}[caption=Module statements syntax]
@@ -642,7 +640,7 @@ module A {
 
 \begin{figure}[!ht]
 \centering
-\resizebox{0.6\textwidth}{!}{%
+\resizebox{0.6\linewidth}{!}{%
 \begin{circuitikz}
 \tikzstyle{every node}=[font=\fontsize{8.0pt}{10.4pt}\selectfont]
 \draw  (2.375,11.5) circle (0.875cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont $s_{top}$} ;

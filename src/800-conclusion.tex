@@ -1,5 +1,5 @@
 % !TEX root = document.tex
-\chapter{\label{chap:conclusion}Conclusion}
+\section{\label{sec:conclusion}Conclusion}
 
 This thesis investigated whether higher-order pattern unification can be
 combined with scope-graph-based name binding in the implementation of a
@@ -14,7 +14,7 @@ The variables available to a solution can be obtained from the
 scope graph and used to construct well-scoped higher-order solutions.
 Metavariables additionally require state that is visible independently of the
 lexical scope in which a solution is discovered, which led to the separate
-metavariable scope introduced in Chapter~5. The resulting implementation
+metavariable scope introduced in \cref{sec:Inference}. The resulting implementation
 supports the higher-order pattern cases considered in this thesis, although
 the lack of constraint postponement restricts the set of unification problems
 that can be handled.
@@ -31,7 +31,7 @@ with a scope-graph-based representation of name binding. The main remaining
 limitations arise not from scope graphs themselves, but from the additional
 solver behavior required by a more complete dependent type elaborator.
 
-\section{Future Work}
+\subsection{Future Work}
 \label{sec:future-work}
 
 There are several directions in which the implementation presented in this
@@ -65,21 +65,21 @@ directly by the Statix solver. In particular, allowing a Statix unification vari
 the state of unification variables could remove part of the very explicit
 state management currently required.
 
-\section{Reproducibility}
+\subsection{Reproducibility}
 The implementation artifacts developed as part of this thesis consist of an
 Eclipse project containing the Statix specification of the dependently typed
 language, together with a set of Elpi source files used for the alternative
-HOAS-based implementation discussed in Chapter~6. They can be found here: \url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
+HOAS-based implementation discussed in \cref{sec:ScopeGraphs}. They can be found here: \url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
 
 The Statix artifact contains the language definition, type-checking rules,
 scope-graph-based name resolution, metavariable handling, and higher-order
-pattern unification described in Chapters~4 and~5. The project can be opened
+pattern unification described in \cref{sec:Language,sec:Inference}. The project can be opened
 in the Spoofax/Eclipse development environment and includes the examples and
 tests used during development to validate the implementation. The Elpi
 artifact contains the corresponding core language implementation used for the
 comparison with Higher-Order Abstract Syntax.
 
-\section{AI usage}
+\subsection{AI usage}
 Generative AI tools were used during the preparation of this thesis, limited to tasks such as improving my own wording, formatting figures, LaTeX code and researching documentation or new papers to read.
 They were not used as an authoritative source of scientific information.
 AI was not used to develop the theory behind the metavariable scoping in Statix, or the Statix code. For the ELPI implementation of the language, it was used to find built-in functions that can apply multiple arguments to an ELPI metavariable.

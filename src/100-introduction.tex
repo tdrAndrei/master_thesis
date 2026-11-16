@@ -1,6 +1,6 @@
 % !TEX root = document.tex
 
-\chapter{\label{chap:introduction}Introduction}
+\section{\label{sec:introduction}Introduction}
 Having a strong type system has become a defining characteristic of many modern programming languages. Beyond basic error detection, expressive type systems allow developers to encode invariants directly into the structure of their programs, shifting entire classes of bugs from runtime to compile time. Types serve as a precise form of documentation, making assumptions and guarantees explicit and enforceable.
 
 Dependent type systems represent a significant step in this progression. They extend conventional type systems by allowing types to depend on values. This added expressiveness enables the encoding of precise specifications. This includes, for instance, types that capture the exact length of a list or enforce domain-specific constraints. Through the Curry-Howard correspondence \autocite{reis_curry-howard_nodate}, such type systems can express logical proofs. Writing a well-typed program becomes equivalent to constructing a proof of a logical proposition. As a result, languages with dependent types can function as proof assistants for propositional logic with quantifiers. Practical realizations of these ideas can be seen in systems such as Lean, Agda, and Idris~2, where programming and formal verification are tightly integrated. The dependent type calculus introduces $\Pi$-types of the form: $(x:A) \rightarrow B$, where $x$ can appear in the definition of $B$, apart from the regular function type $A \rightarrow B$. $x$ is only known when we apply the function on an argument. The actual value of the argument will then be substituted for $x$ in $B$, to obtain the return type. 
@@ -68,12 +68,12 @@ This issue motivates the central question of this thesis: can higher-order patte
 
 To address these questions, we design and evaluate a higher-order pattern unification algorithm tailored to a scope-graph-based setting, and analyze its implications for implementing dependently typed languages in Spoofax.
 
-\section{\label{sec:contributions}Contributions}
+\subsection{\label{sec:contributions}Contributions}
 
 This thesis addresses two research questions and makes the following contributions.
 
 \paragraph{Higher-order pattern unification in scope-graph systems.}
-We implement and study an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix (chapters \ref{chap:Language} and \ref{chap:Inference}), demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
+We implement and study an algorithm for higher-order pattern unification in a constraint-based system that uses scope graphs for name binding. To validate the algorithm, we implement a minimal dependently typed core language in Statix (\cref{sec:Language,sec:Inference}), demonstrating that higher-order pattern unification can be integrated with scope-graph-based name resolution and supports core dependent type features.
 
 \paragraph{Comparison of implementation paradigms for dependent typing.}
-We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems in chapter \ref{chap:ScopeGraphs}. The analysis qualitatively compares implementation trade-offs, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping.
+We provide a structured comparison between higher-order logic programming systems such as $\lambda$-Prolog and scope-graph-based constraint systems in \cref{sec:ScopeGraphs}. The analysis qualitatively compares implementation trade-offs, including the treatment of binding, fresh name generation, modularity, and non-lexical scoping.

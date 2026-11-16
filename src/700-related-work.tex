@@ -1,6 +1,6 @@
 % !TEX root = document.tex
 
-\chapter{\label{chap:related-work}Related work}
+\section{\label{sec:related-work}Related work}
 
 This thesis lies at the intersection of dependent type elaboration, higher
 order unification, and declarative name binding. Each of these topics has been
@@ -8,9 +8,9 @@ studied independently. Higher order unification is commonly used during the
 elaboration of dependent types, while scope graphs and Statix provide a
 declarative approach to name resolution and type system specification.
 Higher Order Abstract Syntax provides another way to represent languages with
-binders. This chapter places the approach developed in this thesis in relation
+binders. This section places the approach developed in this thesis in relation
 to these areas. \par
-\section{Higher order unification and dependent type elaboration}
+\subsection{Higher order unification and dependent type elaboration}
 Higher order unification has a long history in logic programming and type
 checking. Miller identified the higher order pattern fragment, which restricts
 the arguments of unknown functions to distinct bound variables
@@ -46,7 +46,7 @@ scope structure to determine which bound variables may occur in a solution.
 It also introduces an explicit representation for the state associated with
 unknown terms during inference.
 
-\section{Scope graphs and dependent typing in Statix}
+\subsection{Scope graphs and dependent typing in Statix}
 
 Scope graphs were introduced as a general representation of name resolution
 \autocite{neron_extensible_2015}. A scope graph represents scopes and the
@@ -76,7 +76,7 @@ how that representation can be reused during higher order pattern
 unification instead of introducing a separate representation of lexical
 binding.
 
-\section{Higher Order Abstract Syntax and logic programming}
+\subsection{Higher Order Abstract Syntax and logic programming}
 
 Higher Order Abstract Syntax provides a different approach to the
 representation of binders. In HOAS, binders in the object language are
@@ -92,7 +92,7 @@ unification \autocite{dunchev_elpi_2015}. This makes it possible to express typi
 rules for lambda abstractions and dependent function types using the binding
 and context mechanisms of the meta language.
 
-The Elpi implementation in Chapter~6 is used as a point of comparison for the
+The Elpi implementation in \cref{sec:ScopeGraphs} is used as a point of comparison for the
 Statix implementation. The comparison concerns the representation of binding
 rather than the higher order unification algorithm itself. Elpi provides
 direct support for lexical binders, substitution, and higher order

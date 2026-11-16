@@ -1,7 +1,7 @@
-\chapter{\label{chap:Inference}Inference and Unification}
-A practical type checker should aim to infer the type of as many expressions as possible. The bidirectional approach highlighted in Chapter \ref{chap:Language}, is able to infer the \textbf{type} of variables, let expressions and applications. However, implementations of dependently typed languages also offer the possibility of inferring \textbf{terms} that the user omits. 
+\section{\label{sec:Inference}Inference and Unification}
+A practical type checker should aim to infer the type of as many expressions as possible. The bidirectional approach highlighted in \cref{sec:Language}, is able to infer the \textbf{type} of variables, let expressions and applications. However, implementations of dependently typed languages also offer the possibility of inferring \textbf{terms} that the user omits. 
 
-\section{Typed holes}
+\subsection{Typed holes}
 Typed holes are the mechanism for creating an unsolved variable that the checker knows to have a certain type. In our language, there is syntax that allows users to explicitly create holes:
 \begin{lstlisting}[language=SDF3]
 Expr.Hole = "_"
@@ -24,7 +24,7 @@ where \texttt{?m x :: A}. It is interesting to examine the type of the newly cre
 
 The bidirectional type checking can easily support holes. If we are in check mode and the term is a hole, then the type is known and we can create the metavariable accordingly. If we encounter a hole in infer mode, we don't know which type should be used. We can create another hole of type $\mathsf{Set}$ to represent the unsolved type of the former hole. The hole for the type might be solved from later constraints, otherwise the checking of the program will fail.
 
-\section{Scoping of metavariables}
+\subsection{Scoping of metavariables}
 \label{sec:scopingmetas}
 Supporting metavariables reveals a unique challenge regarding scoping. A metavariable can be in any of the two states: solved or unsolved. This affects how beta reduction works in the language. Recall that weak head normal form is performed with the rule \texttt{whnf : scope * Expr -> (scope * Expr)}. In one scope $s$ trying to reduce a metavariable would remain stuck since it is unsolved, while in another scope $s'$ the metavariable should be reduced to its solution. We show the following example where this behavior occurs:
 \begin{lstlisting}
@@ -36,23 +36,23 @@ f Set _ (\n. refl)
 We call $s$ the scope in which the "\_" is refined to a metavariable $?m$ and bound to $x$. Consider $s'$ to be the scope in which \texttt{refl} is type checked against \texttt{x == 0}. $s'$ is a descendant of $s$, although not a direct one. This scope generates the constraint that $x$ should unify with 0 which gives the solution $?m = 0$. However, when the return type \texttt{Vec T x} is reduced, we are in a scope $s_{ret}$ that is not a descendant of $s'$. $s_{ret}$ will see the bindings for P, x or T, but it cannot see bindings created in $s'$ (such as $y$). Bindings in Statix are immutable, so the original binding for $x$ has the unsolved metavariable, and therefore when \texttt{Vec T x} is reduced we are not able to substitute 0 for $x$. It follows that a form of non-lexical scoping is required in order to accurately model metavariables. Metavariables should act as global objects, which once solved should be visible in all scopes.
 
 
-\section{Metavariables in scope graphs}
+\subsection{Metavariables in scope graphs}\label{sec:metas-in-scope-graphs}
 In this section we will discuss how metavariables fit within the  scope graph framework. We will also examine different approaches to model a binding that can change its value over time. 
 \paragraph{Bootstrapping Statix unification.} When using scope graphs, the bindings that we create in a scope are immutable. However, an ideal approach for handling metavariables would create a binding for the unsolved state, which is later modified \textbf{in-place} when the solution becomes available. Similar behavior is present in Statix's own unification variables. In Statix, users can create unification variables with an unknown value. Statix's solver accumulates eventual equality constraints that involve this variable and can perform first-order unification to solve them. For instance, we can create the binding \texttt{!subst[?m, A]}, where \texttt{A} is an unknown Statix unification variable. Later constraints on \texttt{A} such as \texttt{A == Set}, will update the state of the variable to solved, with value \texttt{Set}.
 More importantly, the new state of \texttt{A} will also be visible in the binding that we created for the metavariable. 
 This approach settles how we can solve a metavariable, and make the solution visible for later reductions. However, it does not solve the issue of knowing if a metavariable is unsolved and therefore should not be reduced. Suppose that we want to replace $?m$ with A as part of a reduction. Statix will delay the result of the reduction because A's value might change. Even if A is later solved, at the moment we performed the reduction the correct result would have been to return the metavariable. Unfortunately, there isn't a way to interact with Statix's solver and query whether A is solved or not. Therefore, this solution isn't currently viable in Statix.
 
-\paragraph{Modelling a global mutable scope.} In section \ref{sec:scopingmetas}, we discussed that metavariables should live in a mutable global scope. This is not a native Statix feature, but can be simulated with scope graphs. With this approach we start by creating a completely different scope to the lexical scopes used for type checking. Mutation is implemented by extending the original scope with a child scope that contains the updated binding. The idea is similar to the append-only log \autocite{rosenblum1992logstructured} where updates are recorded sequentially in a file instead of modifying the structure in-place. This method can reveal the entire history of changes that happened on metavariables. The history is represented as a linear chain\footnote{Each scope has a single parent and at most one descendant} of scopes and only the reference to the lowest descendant is needed to access all bindings. We will call the lowest scope in the chain $s_{meta}$.
+\paragraph{Modelling a global mutable scope.} In \cref{sec:scopingmetas}, we discussed that metavariables should live in a mutable global scope. This is not a native Statix feature, but can be simulated with scope graphs. With this approach we start by creating a completely different scope to the lexical scopes used for type checking. Mutation is implemented by extending the original scope with a child scope that contains the updated binding. The idea is similar to the append-only log \autocite{rosenblum1992logstructured} where updates are recorded sequentially in a file instead of modifying the structure in-place. This method can reveal the entire history of changes that happened on metavariables. The history is represented as a linear chain\footnote{Each scope has a single parent and at most one descendant} of scopes and only the reference to the lowest descendant is needed to access all bindings. We will call the lowest scope in the chain $s_{meta}$.
 
 In Statix, we will represent the 2 possible states of metavariables by 2 different relations:
 \begin{enumerate}
   \item \texttt{!hasTy[?m, T]} is re-used to represent that a metavariable \texttt{?m} of type T exists. If this is the only relation in which \texttt{?m} appears, it follows that the metavariable is not instantiated.
   \item \texttt{!isInst[?m, V]} represents an instantiation of \texttt{?m} with expression \texttt{V}.
 \end{enumerate}
-The chain of meta scopes will be connected by $M$ edges. Figure \ref{fig:sgmetas1} shows the resulting scope graph after creating a metavariable of type Set $\rightarrow$ Set, that is later instantiated with $\backslash$x. Set:
+The chain of meta scopes will be connected by $M$ edges. \Cref{fig:sgmetas1} shows the resulting scope graph after creating a metavariable of type Set $\rightarrow$ Set, that is later instantiated with $\backslash$x. Set:
 \begin{figure}[ht]
 \centering
-\resizebox{0.4\textwidth}{!}{%
+\resizebox{0.4\linewidth}{!}{%
 \begin{circuitikz}
 \tikzstyle{every node}=[font=\fontsize{6.3pt}{8.1pt}\selectfont]
 \draw  (-9.625,11.75) circle (0.75cm);
@@ -79,7 +79,7 @@ The chain of meta scopes will be connected by $M$ edges. Figure \ref{fig:sgmetas
 \paragraph{Interaction with name resolution} Metavariables are also a form of identifiers. They are uniquely identified by the scope in which they were created, they have a type and optionally a value. The \texttt{Id} sort is extended with constructor \texttt{Meta : scope -> Id}, which receives the unique scope reference of the metavariable.
 Like all the other identifiers, the primitives we designed for name resolution should be able to interact with the metavariable scope. For instance, \texttt{getTy : scope * Id -> Expr} should be able to obtain the type of any identifier, including metavariables. We therefore extend \texttt{getTy} to take $s_{meta}$ as an additional parameter, that will be used when the given identifier is a metavariable. We have also implemented a similar rule for obtaining the instantiation of a metavariable.
 
-\section{Higher order pattern unification in Statix}
+\subsection{Higher order pattern unification in Statix}
 In the previous sections we have laid the necessary foundation for managing metavariables in the scope graph framework. In the following we will discuss how higher order pattern unification can be implemented using these building blocks.\par
 Unification is a procedure that might be used when trying to establish that two terms are equal. If those terms contain metavariables, we will obtain different constraints on them. There are many places where equality is required in our type checker such as: the inferred type of a term matches its annotation, we test that two terms are definitionally equal, etc. We define equality as a Statix rule with the following signature:
 
@@ -90,7 +90,7 @@ equal (sMeta, (sA, A), (sB, B)) = ...
 
 The \texttt{equal} rule takes 3 parameters: the reference to $s_{meta}$, closure of a term A and a closure of term B. Notice that the rule is expected to return a scope, namely a new reference to $s_meta$. If unification is performed, it will mutate the metavariable scope. Furthermore, if we discover that A and B are not equal, the rule will fail and type checking will not recover. \par
 
-The first step that the equality rule will do is to reduce both terms up to weak head normal form. Depending on the head expressions of the two terms we can be in the three following cases discussed in Chapter \ref{chap:hou}:
+The first step that the equality rule will do is to reduce both terms up to weak head normal form. Depending on the head expressions of the two terms we can be in the three following cases discussed in \cref{sec:hou}:
 \begin{itemize}
   \item Rigid-Rigid
   \item Flex-Rigid
@@ -158,10 +158,10 @@ To implement these checks in Statix we require functions to reveal the free vari
 Flex-Flex problems are hard to deal with in Statix. Without the ability to postpone problems we need an approximation to this scenario. The only problem we can solve with certainty is of the form $?M \equiv ?N$, where we unify 2 different metavariables with no arguments. The solution is to make one metavariable equal to the other. For the rest of flex-flex problems we will fail type checking and signal that this is a flex-flex case.
 
 
-\section{Discussion}
+\subsection{Discussion}
 \label{sec:inference-discussion}
 
-The implementation presented in this chapter demonstrates that higher-order
+The implementation presented in this section demonstrates that higher-order
 pattern unification can be integrated with a type checker that represents name
 binding using scope graphs. In particular, the scope graph provides the
 information required to determine which bound variables a metavariable may
@@ -179,7 +179,7 @@ scope, and subsequently inspected from yet another part of the program. Its
 solution must therefore be globally visible, while the variables on which the
 solution is allowed to depend are still determined by the context in which the
 metavariable was created. The separate metavariable scope introduced in
-Section~5.3 reflects this distinction. It provides global access to the current
+\cref{sec:metas-in-scope-graphs} reflects this distinction. It provides global access to the current
 state of a metavariable while retaining the lexical information necessary to
 restrict its possible solutions.
 
@@ -191,7 +191,7 @@ not provide such a mechanism for the higher-order constraints introduced in
 this work. As a result, flex-rigid constraints can be solved when they already
 satisfy the pattern conditions, whereas constraints that might only become
 patterns later must be rejected. Support for flex-flex constraints is similarly
-restricted. The result of this chapter is therefore an integration of the higher-order pattern fragment with scope graphs, and not a complete implementation of dynamic higher-order unification.
+restricted. The result of this section is therefore an integration of the higher-order pattern fragment with scope graphs, and not a complete implementation of dynamic higher-order unification.
 
 Overall, these results give a positive answer to RQ1. Scope
 graphs can provide the binding information required by higher-order pattern
@@ -200,6 +200,6 @@ ordinary scope graph. At the same time, the implementation shows that binding
 representation is only one part of a practical elaborator. Richer support for
 constraint postponement and reactivation would be required to cover the
 broader class of unification problems encountered by dependently typed
-languages. The following chapter examines how these responsibilities change
+languages. The following section examines how these responsibilities change
 when binding and higher-order unification are instead provided directly by a
 higher-order meta-language.

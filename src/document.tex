@@ -1,59 +1,34 @@
-% Fix: From https://tex.stackexchange.com/a/508995/108670
-\RequirePackage{snapshot}
-\makeatletter
-\def\snap@providesfile#1[#2]{%
-  \wlog{File: #1 #2}%
-  \if\expandafter\snap@graphic@test\expanded{#2}@@\@nil
-    \snap@record@graphic#1\relax #2 (type ??)\@nil
-  \else
-    \expandafter\xdef\csname ver@#1\endcsname{#2}%
-  \fi
-  \endgroup
-}
-\makeatother
-
-\documentclass[twoside,a4paper,11pt]{memoir}
+\documentclass[acmsmall,screen,nonacm,natbib=false]{acmart}
 \usepackage{document}
 
-% Add \@ _before_ the terminating period of the sentence (`UI\@. Test`)
-% to allow inter-sentence spacing when the sentence ends with a capital letter.
-
 \addbibresource{document.bib}
-\addbibresource{researchr.bib}
 
-\input{metadata}
+\title{Higher order pattern unification using scope graphs}
+
+\author{Tudor Andrei}
+\affiliation{%
+  \institution{Delft University of Technology}
+  \city{Delft}
+  \country{The Netherlands}
+}
 
 \begin{document}
 
-\frontmatter
-\thispagestyle{empty}
+\begin{abstract}
+\input{000-abstract}
+\end{abstract}
+
 \maketitle
-\makeformaltitlepages{\input{000-abstract}}
 
-\include{010-preface}
-
-\cleardoublepage\tableofcontents
-%\cleardoublepage\listoffigures
-%\cleardoublepage\listoftables
-\cleardoublepage\mainmatter{}
-
-\include{100-introduction}
-\include{200-BackgroundStatix}
-\include{300-hou}
-\include{400-language}
-\include{500-inference}
-
-\include{600-hoas}
-%\include{500-evaluation}
-\include{700-related-work}
-\include{800-conclusion}
+\input{100-introduction}
+\input{200-BackgroundStatix}
+\input{300-hou}
+\input{400-language}
+\input{500-inference}
+\input{600-hoas}
+\input{700-related-work}
+\input{800-conclusion}
 
 \printbibliography{}
-
-\include{acronyms}
-
-% \appendix
-% \def\chaptername{Appendix}
-% \include{A00-appendix}
 
 \end{document}
