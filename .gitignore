@@ -11,3 +11,7 @@ missfont.log
 *.aux
 .~lock.document.pdf#
 .vscode
+.DS_Store
+/document.pdf
+/document.synctex.gz
+/document.vtc

@@ -1,17 +1,7 @@
 \ProvidesPackage{document}
 
-% Preamble for the acmart version, compiled with XeLaTeX.
-%
-% acmart already loads and configures: fonts (Libertine, Libertinus Math via
-% unicode-math, Inconsolata), amsmath, amsthm, graphicx, xcolor, hyperref,
-% microtype, booktabs and caption.  Do not load those again here, and do not
-% load amssymb or mathabx: they clash with unicode-math.
-
 \RequireXeTeX{}
 
-% Characters missing from acmart's fonts (XeTeX has no automatic font
-% fallback; missing glyphs are dropped with only a log message).
-% Inconsolata, the monospace font, has no U+2200.
 \usepackage{newunicodechar}
 \newunicodechar{∀}{\ensuremath{\forall}}
 

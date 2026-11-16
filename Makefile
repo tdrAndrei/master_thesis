@@ -4,18 +4,17 @@ CONTINUOUS = -pvc -view=default -halt-on-error
 
 DOCUMENT   := document
 OUTPUT     := $(DOCUMENT)
-RESEARCHR  := 7743bb93-f34f-40d3-a7d9-9cf70d73431c-master-thesis
 SRCDIR     := src
 FIGDIR     := src/fig
 IMGDIR     := src/img
 RESDIR     := src/res
 OUTDIR     := out
-SRCBIB     := $(SRCDIR)/researchr.bib
+SRCBIB     := $(SRCDIR)/document.bib
 SRCS       := Makefile $(wildcard $(SRCDIR)/*.tex) $(shell find $(FIGDIR)/* $(IMGDIR)/* $(RESDIR)/* -type f) $(SRCBIB)
 IMGS       := $(wildcard $(IMGDIR)/*.ps) $(wildcard $(IMGDIR)/*.eps)
 OBJS       := $(wildcard $(OUTDIR)/*.aux) $(wildcard $(OUTDIR)/*.bbl) $(wildcard $(OUTDIR)/*.pdf)
 
-.PHONY: all clean .refresh view show bib clean-bib
+.PHONY: all clean .refresh view show
 
 all: $(DOCUMENT).pdf
 
@@ -39,20 +38,7 @@ watch:
 			-output-directory=../$(OUTDIR) \
 			$(DOCUMENT)
 
-bib: clean-bib $(SRCBIB) fix-bib
-
-$(SRCBIB):
-	curl https://researchr.org/downloadbibtex/bibliography/$(RESEARCHR)/ -o $(SRCBIB)
-
-fix-bib: $(SRCBIB)
-	sed -i '' '1 s/^/% /' $(SRCBIB)
-	sed -i '' 's/doi = {http.*\/\(10\..*\)}/doi = {\1}/' $(SRCBIB)
-	sed -i '' '/doi = {http.*}/d' $(SRCBIB)
-
-clean-bib:
-	rm -f $(SRCBIB)
-
-clean: clean-bib
+clean:
 	rm -rf $(OUTDIR)/
 	rm -f *.aux
 	rm -f *.bbl
