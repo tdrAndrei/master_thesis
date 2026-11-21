@@ -83,7 +83,7 @@ Like all the other identifiers, the primitives we designed for name resolution s
 In the previous sections we have laid the necessary foundation for managing metavariables in the scope graph framework. In the following we will discuss how higher order pattern unification can be implemented using these building blocks.\par
 Unification is a procedure that might be used when trying to establish that two terms are equal. If those terms contain metavariables, we will obtain different constraints on them. There are many places where equality is required in our type checker such as: the inferred type of a term matches its annotation, we test that two terms are definitionally equal, etc. We define equality as a Statix rule with the following signature:
 
-\begin{lstlisting}
+\begin{lstlisting}[language=Statix]
 equal : scope * (scope * Expr) * (scope * Expr) -> scope
 equal (sMeta, (sA, A), (sB, B)) = ...
 \end{lstlisting}

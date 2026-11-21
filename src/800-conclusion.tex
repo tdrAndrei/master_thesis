@@ -1,7 +1,7 @@
 % !TEX root = document.tex
 \section{\label{sec:conclusion}Conclusion}
 
-This thesis investigated whether higher-order pattern unification can be
+This paper investigated whether higher-order pattern unification can be
 combined with scope-graph-based name binding in the implementation of a
 dependently typed language. To study this question, we implemented a small
 dependently typed language in Statix and extended its type checker with higher-order inference. We subsequently implemented the
@@ -15,7 +15,7 @@ scope graph and used to construct well-scoped higher-order solutions.
 Metavariables additionally require state that is visible independently of the
 lexical scope in which a solution is discovered, which led to the separate
 metavariable scope introduced in \cref{sec:Inference}. The resulting implementation
-supports the higher-order pattern cases considered in this thesis, although
+supports the higher-order pattern cases considered in this paper, although
 the lack of constraint postponement restricts the set of unification problems
 that can be handled.
 
@@ -35,7 +35,7 @@ solver behavior required by a more complete dependent type elaborator.
 \label{sec:future-work}
 
 There are several directions in which the implementation presented in this
-thesis could be extended.
+paper could be extended.
 
 \paragraph{Constraint postponement and reactivation.}
 The most immediate limitation of the current higher-order unification
@@ -66,7 +66,7 @@ the state of unification variables could remove part of the very explicit
 state management currently required.
 
 \subsection{Reproducibility}
-The implementation artifacts developed as part of this thesis consist of an
+The implementation artifacts developed as part of this work consist of an
 Eclipse project containing the Statix specification of the dependently typed
 language, together with a set of Elpi source files used for the alternative
 HOAS-based implementation discussed in \cref{sec:ScopeGraphs}. They can be found here: \url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
@@ -80,7 +80,7 @@ artifact contains the corresponding core language implementation used for the
 comparison with Higher-Order Abstract Syntax.
 
 \subsection{AI usage}
-Generative AI tools were used during the preparation of this thesis, limited to tasks such as improving my own wording, formatting figures, LaTeX code and researching documentation or new papers to read.
+Generative AI tools were used during the preparation of this work, limited to tasks such as improving my own wording, formatting figures, LaTeX code and researching documentation or new papers to read.
 They were not used as an authoritative source of scientific information.
 AI was not used to develop the theory behind the metavariable scoping in Statix, or the Statix code. For the ELPI implementation of the language, it was used to find built-in functions that can apply multiple arguments to an ELPI metavariable.
-In general, technical claims, definitions, algorithms, and comparisons included in this thesis were verified against the cited literature. 
+In general, technical claims, definitions, algorithms, and comparisons included in this paper were verified against the cited literature. 

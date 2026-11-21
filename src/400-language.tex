@@ -14,7 +14,7 @@ Expr.Ann = Expr "::" Expr
 
 \noindent The language is formed from lambda abstractions, applications, variables, let bindings, pi types and type annotations. The latter are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
 The two routines required for bidirectional typing have the following signatures:
-\begin{lstlisting}
+\begin{lstlisting}[language=Statix]
 infer : scope * Expr -> (Expr * Expr)
 check :  scope * Expr * Expr -> Expr
 \end{lstlisting}
@@ -353,9 +353,9 @@ types. We write
 \]
 
 \noindent normalizes an expression that has already been reduced to weak head normal
-form.
+form. \Cref{fig:normalisation} gives the rules.
 
-\begin{framed}
+\begin{figure}[tbp]
   \begin{mathpar}
   \inferrule*[right=\textsc{Norm-Whnf}]
     {
@@ -416,7 +416,10 @@ form.
     }
 
   \end{mathpar}
-\end{framed}
+  \caption{Full normalisation rules.}
+  \label{fig:normalisation}
+  \Description{Inference rules Norm-Whnf, Norm-Pi, Norm-Lam, Norm-App and Norm-Neutral, defining full normalisation of an expression in a scope via weak head normalisation followed by normalisation of the immediate subexpressions.}
+\end{figure}
 
 The checker does not always need to fully normalize expressions. In most
 typing rules, it only needs to inspect the outermost constructor of a type. For
@@ -470,7 +473,7 @@ In the sections above, we have described all the terms in our language. Terms ar
 let f = (\x.\y. y) :: (x: Set) -> (y: x) -> x;
 \end{lstlisting}
 Instead users can create a \textit{definition}. The grammar for statements is given in the following:
-\begin{lstlisting}[caption=Syntax for statements]
+\begin{lstlisting}[language=SDF3, caption=Syntax for statements]
 Start.Program = [[Stmt*] [Expr]]
 Start.ProgramOnly = [[Stmt*]]
   
@@ -566,7 +569,7 @@ accepted by the current implementation.
 
 \subsection{Modules}
 
-This section describes another feature of our language that uses non-lexical scoping: modules. The concept of modules exists in many programming languages, but their implementations differ significantly. In some languages, modules primarily serve as compilation units or packages. In others, they are used to express abstraction boundaries, interfaces, or parameterized components. For this thesis, we are interested in a narrower aspect of modules, namely the interaction with name resolution.
+This section describes another feature of our language that uses non-lexical scoping: modules. The concept of modules exists in many programming languages, but their implementations differ significantly. In some languages, modules primarily serve as compilation units or packages. In others, they are used to express abstraction boundaries, interfaces, or parameterized components. In this paper, we are interested in a narrower aspect of modules, namely the interaction with name resolution.
 
 \subsubsection{Modules as name-resolution constructs}
 
@@ -620,7 +623,7 @@ The declaration \texttt{open A} makes the exported declarations of \texttt{A} av
 \subsubsection{Scope-graph representation}
 
 To support module declarations and openings, we have to adapt the existing scope graph edges and queries. Firstly, it is worth mentioning that declaring or opening a module are both statements in our language:
-\begin{lstlisting}[caption=Module statements syntax]
+\begin{lstlisting}[language=SDF3, caption=Module statements syntax]
 Stmt.Module = [module [ID] { [Stmt*] }]
 Stmt.Open = [open [ID];]
 \end{lstlisting} 

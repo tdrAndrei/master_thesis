@@ -9,7 +9,6 @@
 % Figures and inference rules
 \usepackage{circuitikz}         % scope-graph diagrams
 \usepackage{mathpartir}         % \inferrule, mathpar
-\usepackage{framed}
 
 
 % Notation
@@ -34,46 +33,99 @@
 }
 
 
-% Listings
+% Listings: one style for all code in the paper (ACM PL look: small mono,
+% bold keywords, gray comments, gray line numbers, short rule above,
+% full rule below, caption below).
 \usepackage{listings}
 
-\lstdefinestyle{centered}{
-  basicstyle=\ttfamily\small,
-  breaklines=true,
-  frame=single
-}
-\lstset{style=centered}
-
-\lstdefinestyle{hoas}{
+\lstset{
   basicstyle=\ttfamily\small,
   columns=fullflexible,
   keepspaces=true,
-  frame=single,
+  keywordstyle=\bfseries,
+  commentstyle=\color{gray},          % Inconsolata has no italic
+  stringstyle=\color{black},
+  showstringspaces=false,
+  frame=b,                             % top rule: see \lsttoprulewidth below
+  framesep=4pt,
+  aboveskip=0pt,
+  belowskip=\medskipamount,
+  captionpos=b,
   breaklines=true,
-  showstringspaces=false
+  numbers=left,                        % line numbers, inside the text block:
+  numberstyle=\scriptsize\color{gray},
+  numbersep=8pt,
+  xleftmargin=1.5em,                   % code indented to make room for them,
+  framexleftmargin=1.5em,              % bottom rule still starts at the margin
+}
+% Mark wrapped lines in displayed listings only, not in inline \lstinline code.
+\AddToHook{env/lstlisting/begin}{%
+  \lstset{postbreak=\mbox{\textcolor{gray}{$\hookrightarrow$}\space}}}
+
+% listings can only draw full-width frame rules, so the top rule is drawn
+% here instead, before each lstlisting environment, at a shorter width.
+% \lsttoprulewidth is a fraction of the line width (1 = full width).
+\newcommand{\lsttoprulewidth}{0.5}
+\AddToHook{env/lstlisting/before}{%
+  \par\addvspace{\medskipamount}%
+  \hrule width \lsttoprulewidth\linewidth height \fboxrule\relax
+  \nopagebreak\vspace{4pt}\nopagebreak}
+
+% The dependently typed object language of this paper (the default).
+\lstdefinelanguage{Core}{
+  morekeywords={let, def, postulate, module, open, Set, refl},
+  sensitive=true,
+  morecomment=[l]{--},
 }
 
-\lstdefinelanguage{SDF3}{
-  keywords={Name, Number, module, imports, context-free, lexical, syntax, start-symbols},
+% Statix specifications (Spoofax).
+\lstdefinelanguage{Statix}{
+  morekeywords={module, imports, signature, sorts, constructors, relations,
+    rules, name-resolution, labels, resolve, query, filter, min, and, new,
+    true, false, try, scope, in, string, int, list, occurrence},
   sensitive=true,
   morecomment=[l]{//},
   morecomment=[s]{/*}{*/},
-  morestring=[b]"
+  morestring=[b]",
+}
+
+% Elpi (lambda Prolog).
+\lstdefinelanguage{Elpi}{
+  morekeywords={kind, type, pred, pi, sigma, i, o},
+  otherkeywords={:-, =>, ==>},
+  sensitive=true,
+  morecomment=[l]{\%},
+  morestring=[b]",
+}
+
+% SDF3 syntax definitions (Spoofax).
+\lstdefinelanguage{SDF3}{
+  morekeywords={module, imports, context-free, lexical, syntax, start-symbols,
+    sorts, left, right},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+
+\lstdefinelanguage{Agda}{
+  morekeywords={data, where, record, field, module, open, import, Set},
+  sensitive=true,
+  morecomment=[l]{--},
 }
 
 \lstdefinelanguage{Rust}{
-  keywords={fn, let, mut, pub, impl, trait, struct, enum, match, if, else, loop, while, for, in, return, break, continue, use, mod, crate, super, self, Self, const, static, ref, type, where, as},
-  keywordstyle=\color{blue}\bfseries,
-  ndkeywords={i32, i64, u32, u64, f32, f64, usize, isize, bool, String, str},
-  ndkeywordstyle=\color{teal},
-  identifierstyle=\color{black},
+  morekeywords={fn, let, mut, pub, impl, trait, struct, enum, match, if, else,
+    loop, while, for, in, return, break, continue, use, mod, crate, super,
+    self, Self, const, static, ref, type, where, as},
   sensitive=true,
-  comment=[l]{//},
+  morecomment=[l]{//},
   morecomment=[s]{/*}{*/},
-  commentstyle=\color{gray}\ttfamily,
-  stringstyle=\color{orange},
   morestring=[b]",
 }
+
+% Code without a language option is in the object language.
+\lstset{language=Core}
 
 
 % Cross-references: \cref{} mid-sentence, \Cref{} at the start of a sentence.

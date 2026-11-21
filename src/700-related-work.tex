@@ -2,13 +2,13 @@
 
 \section{\label{sec:related-work}Related work}
 
-This thesis lies at the intersection of dependent type elaboration, higher
+This work lies at the intersection of dependent type elaboration, higher
 order unification, and declarative name binding. Each of these topics has been
 studied independently. Higher order unification is commonly used during the
 elaboration of dependent types, while scope graphs and Statix provide a
 declarative approach to name resolution and type system specification.
 Higher Order Abstract Syntax provides another way to represent languages with
-binders. This section places the approach developed in this thesis in relation
+binders. This section places the approach developed in this paper in relation
 to these areas. \par
 \subsection{Higher order unification and dependent type elaboration}
 Higher order unification has a long history in logic programming and type
@@ -34,11 +34,11 @@ information becomes available \autocite{abel_extensions_2018}. Their work also
 describes pruning, which can remove dependencies that prevent a constraint
 from satisfying the pattern restrictions. These techniques provide a more
 complete treatment of higher order constraints than the implementation in
-this thesis. The Statix implementation presented here handles constraints that
+this paper. The Statix implementation presented here handles constraints that
 can already be recognized as solvable pattern problems. It does not currently
 provide the postponement mechanism required for dynamic pattern unification.
 
-The aim of this thesis is therefore not to introduce a new general higher
+The aim of this work is therefore not to introduce a new general higher
 order unification procedure. Instead, it studies how the information required
 by higher order pattern unification can be obtained when name binding is
 represented through scope graphs. In particular, the implementation uses the
@@ -71,7 +71,7 @@ unification. In those presentations, the context of an unknown term is usually
 represented directly as part of the unification problem. For example,
 contextual representations can associate an open term with the variables on
 which it may depend \autocite{nanevski2008contextual}. In Statix, the corresponding
-information is already present in the scope graph. This thesis investigates
+information is already present in the scope graph. This paper investigates
 how that representation can be reused during higher order pattern
 unification instead of introducing a separate representation of lexical
 binding.
@@ -102,7 +102,7 @@ scope graphs directly represent visibility relations that do not follow
 lexical nesting, such as module openings and qualified references.
 
 The two approaches therefore emphasize different aspects of language
-implementation. The work in this thesis studies higher order inference in a
+implementation. This work studies higher order inference in a
 setting where the explicit name resolution structure provided by scope graphs
 is retained, rather than replacing that structure with a higher order
 representation of all binders.

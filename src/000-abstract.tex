@@ -6,7 +6,7 @@ additional challenge. Inference of implicit arguments can require higher order
 unification, where a solution may depend on variables introduced by surrounding
 binders.
 
-This thesis investigates how higher order pattern unification can be combined
+This paper investigates how higher order pattern unification can be combined
 with scope graph based name binding. We study this problem in Statix, a
 constraint language in the Spoofax language workbench that uses scope graphs
 for name resolution and provides first order unification as part of its solver.
@@ -14,7 +14,7 @@ We implement a small dependently typed language and extend its type checker
 with higher order pattern unification. The implementation uses scope graph
 information to determine which bound variables may occur in a solution and to
 construct well scoped higher order solutions. The supported fragment covers the
-pattern cases considered in this thesis, but does not include dynamic pattern
+pattern cases considered in this paper, but does not include dynamic pattern
 unification, since constraints cannot be postponed and reconsidered later.
 
 We also implement the core of the same language in Elpi using Higher Order
