@@ -1,86 +1,53 @@
 % !TEX root = document.tex
 \section{\label{sec:conclusion}Conclusion}
 
-This paper investigated whether higher-order pattern unification can be
-combined with scope-graph-based name binding in the implementation of a
-dependently typed language. To study this question, we implemented a small
-dependently typed language in Statix and extended its type checker with higher-order inference. We subsequently implemented the
-core of the same language in Elpi in order to compare the scope-graph
-representation with Higher-Order Abstract Syntax.
-
-With respect to RQ1, the Statix implementation shows that scope graphs can
-provide the binding information required by higher-order pattern unification.
-The variables available to a solution can be obtained from the
-scope graph and used to construct well-scoped higher-order solutions.
-Metavariables additionally require state that is visible independently of the
-lexical scope in which a solution is discovered, which led to the separate
-metavariable scope introduced in \cref{sec:Inference}. The resulting implementation
-supports the higher-order pattern cases considered in this paper, although
-the lack of constraint postponement restricts the set of unification problems
-that can be handled.
-
-With respect to RQ2, the comparison with Elpi shows that the two approaches
-place complexity in different parts of the language implementation. HOAS
-delegates lexical binding, capture-avoiding substitution, and higher-order
-unification to the meta-language. Scope graphs require these operations to be
-made more explicit, but provide very good support for non-lexical name
-resolution, including modules, qualified references, and forward references.
-
-Overall, this work shows that higher-order pattern unification is compatible
-with a scope-graph-based representation of name binding. The main remaining
-limitations arise not from scope graphs themselves, but from the additional
-solver behavior required by a more complete dependent type elaborator.
+With respect to RQ1, our Statix implementation shows that scope graphs can
+provide the binding information required by higher-order pattern unification:
+the variables a solution may use are obtained from the scope graph and used to
+construct well-scoped higher-order solutions. Metavariables additionally need
+state that is visible independently of the lexical scope in which a solution is
+found, which led to the separate metavariable scope of \cref{sec:Inference}.
+With respect to RQ2, the comparison with Elpi shows that HOAS delegates lexical
+binding, capture-avoiding substitution, and higher-order unification to the
+meta-language, whereas scope graphs make these operations explicit but directly
+support non-lexical name resolution, including modules, qualified references,
+and forward references. Overall, higher-order pattern unification is compatible
+with scope-graph-based name binding. The main remaining limitations stem from
+the solver behaviour that a more complete elaborator requires, not from scope
+graphs themselves.
 
 \subsection{Future Work}
 \label{sec:future-work}
 
-There are several directions in which the implementation presented in this
-paper could be extended.
-
 \paragraph{Constraint postponement and reactivation.}
-The most immediate limitation of the current higher-order unification
-procedure is the absence of constraint postponement. A constraint that is
-outside the pattern fragment cannot necessarily be classified permanently as
-unsolvable since later instantiations may simplify it into a pattern problem.
-Supporting this behavior would require a mechanism for suspending
-higher-order constraints and reactivating them when one of the metavariables
-on which they depend is instantiated. Such a mechanism would considerably
-reduce the number of constraints that the current implementation has to reject
-eagerly.
+The most immediate limitation is the absence of constraint postponement. A
+constraint outside the pattern fragment may become a pattern problem after later
+instantiations, so it should be suspended and reactivated when one of its
+metavariables is solved, rather than rejected eagerly.
 
-\paragraph{Pruning and more complete higher-order pattern unification.}
-Another possible extension is pruning. Sometimes a unification problem cannot
-be solved because the proposed solution for a metavariable would refer to a
-variable that was not in scope when that metavariable was introduced.
-However, the offending variable may occur only as an argument to another metavariable. If that metavariable does not actually need to depend on the variable, its context can be reduced so that the offending dependency disappears. The original unification problem may then become solvable. Implementing this pruning step would allow the current solver to handle more higher-order constraints.
+\paragraph{Pruning.}
+A proposed solution may mention a variable outside the metavariable's context
+only because that variable is an argument to another metavariable. Pruning that
+other metavariable's context removes the offending dependency and would let the
+solver handle more higher-order constraints.
 
 \paragraph{Closer integration with the Statix solver.}
-The current implementation represents metavariable state explicitly through a
-separate chain of scopes that is threaded through the type-checking rules.
-This design was necessary because ordinary scope-graph bindings are immutable
-and because the state of Statix unification variables cannot be inspected in
-the way required by the implementation. An interesting direction would be to
-investigate whether higher-order metavariables could be supported more
-directly by the Statix solver. In particular, allowing a Statix unification variable to "see" a local context or exposing mechanisms for observing
-the state of unification variables could remove part of the very explicit
-state management currently required.
+Metavariable state is currently threaded explicitly through a separate chain of
+scopes, because scope-graph bindings are immutable and the state of Statix
+unification variables cannot be inspected. Letting Statix unification variables
+depend on a local context, or exposing their state, could remove much of this
+explicit state management.
 
-\subsection{Reproducibility}
-The implementation artifacts developed as part of this work consist of an
-Eclipse project containing the Statix specification of the dependently typed
-language, together with a set of Elpi source files used for the alternative
-HOAS-based implementation discussed in \cref{sec:ScopeGraphs}. They can be found here: \url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
+\section*{Data-Availability Statement}
+The Statix specification of the dependently typed language (an Eclipse/Spoofax
+project with the examples and tests used during development) and the Elpi
+implementation used in \cref{sec:ScopeGraphs} are available at
+\url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
 
-The Statix artifact contains the language definition, type-checking rules,
-scope-graph-based name resolution, metavariable handling, and higher-order
-pattern unification described in \cref{sec:Language,sec:Inference}. The project can be opened
-in the Spoofax/Eclipse development environment and includes the examples and
-tests used during development to validate the implementation. The Elpi
-artifact contains the corresponding core language implementation used for the
-comparison with Higher-Order Abstract Syntax.
-
-\subsection{AI usage}
-Generative AI tools were used during the preparation of this work, limited to tasks such as improving my own wording, formatting figures, LaTeX code and researching documentation or new papers to read.
-They were not used as an authoritative source of scientific information.
-AI was not used to develop the theory behind the metavariable scoping in Statix, or the Statix code. For the ELPI implementation of the language, it was used to find built-in functions that can apply multiple arguments to an ELPI metavariable.
-In general, technical claims, definitions, algorithms, and comparisons included in this paper were verified against the cited literature. 
+\begin{acks}
+Generative AI tools were used for wording, formatting figures and LaTeX code, and
+finding documentation and related papers, and to find Elpi built-in functions
+for applying multiple arguments to a metavariable. They were not used to develop
+the metavariable scoping theory or the Statix code, and all technical claims
+were verified against the cited literature.
+\end{acks}

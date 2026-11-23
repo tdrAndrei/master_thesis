@@ -1,12 +1,12 @@
 \section{\label{sec:Inference}Inference and Unification}
-A practical type checker should aim to infer the type of as many expressions as possible. The bidirectional approach highlighted in \cref{sec:Language}, is able to infer the \textbf{type} of variables, let expressions and applications. However, implementations of dependently typed languages also offer the possibility of inferring \textbf{terms} that the user omits. 
+A practical type checker should aim to infer the type of as many expressions as possible. The bidirectional approach highlighted in \cref{sec:Language}, is able to infer the type of variables, let expressions and applications. However, implementations of dependently typed languages also offer the possibility of inferring terms that the user omits. 
 
 \subsection{Typed holes}
 Typed holes are the mechanism for creating an unsolved variable that the checker knows to have a certain type. In our language, there is syntax that allows users to explicitly create holes:
 \begin{lstlisting}[language=SDF3]
 Expr.Hole = "_"
 \end{lstlisting}
-Holes are expressions in the language, but are expected to be solved by the checker into a concrete term. This process is known in the literature as elaboration \autocite{demoura2015elaboration}. Elaboration in dependently typed languages is very complex and may be used for more than solving holes. For instance, in Agda the elaborator can insert holes in places where implicit arguments are expected and the user can omit them in the surface syntax. The elaboration component of our Statix type checker is represented by refinement of terms via the infer and check routines. Both check and infer will refine holes into \textbf{metavariables}. Because our language performs higher order unification, this refinement process is necessary to capture the dependencies of the hole. Dependencies are bound variables that are in scope when the hole is created, and are allowed to appear in the solution of the metavariable. Dependencies are captured by applying them to the metavariable in the resulting refined term. As an example consider the creation of the hole: 
+Holes are expressions in the language, but are expected to be solved by the checker into a concrete term. This process is known in the literature as elaboration \autocite{demoura2015elaboration}. Elaboration in dependently typed languages is very complex and may be used for more than solving holes. For instance, in Agda the elaborator can insert holes in places where implicit arguments are expected and the user can omit them in the surface syntax. The elaboration component of our Statix type checker is represented by refinement of terms via the infer and check routines. Both check and infer will refine holes into \emph{metavariables}. Because our language performs higher order unification, this refinement process is necessary to capture the dependencies of the hole. Dependencies are bound variables that are in scope when the hole is created, and are allowed to appear in the solution of the metavariable. Dependencies are captured by applying them to the metavariable in the resulting refined term. As an example consider the creation of the hole: 
 \begin{lstlisting}
 postulate A : Set;
 postulate f : (x : A) -> (y : A) -> (x == y) -> A;
@@ -38,7 +38,7 @@ We call $s$ the scope in which the "\_" is refined to a metavariable $?m$ and bo
 
 \subsection{Metavariables in scope graphs}\label{sec:metas-in-scope-graphs}
 In this section we will discuss how metavariables fit within the  scope graph framework. We will also examine different approaches to model a binding that can change its value over time. 
-\paragraph{Bootstrapping Statix unification.} When using scope graphs, the bindings that we create in a scope are immutable. However, an ideal approach for handling metavariables would create a binding for the unsolved state, which is later modified \textbf{in-place} when the solution becomes available. Similar behavior is present in Statix's own unification variables. In Statix, users can create unification variables with an unknown value. Statix's solver accumulates eventual equality constraints that involve this variable and can perform first-order unification to solve them. For instance, we can create the binding \texttt{!subst[?m, A]}, where \texttt{A} is an unknown Statix unification variable. Later constraints on \texttt{A} such as \texttt{A == Set}, will update the state of the variable to solved, with value \texttt{Set}.
+\paragraph{Bootstrapping Statix unification.} When using scope graphs, the bindings that we create in a scope are immutable. However, an ideal approach for handling metavariables would create a binding for the unsolved state, which is later modified in place when the solution becomes available. Similar behavior is present in Statix's own unification variables. In Statix, users can create unification variables with an unknown value. Statix's solver accumulates eventual equality constraints that involve this variable and can perform first-order unification to solve them. For instance, we can create the binding \texttt{!subst[?m, A]}, where \texttt{A} is an unknown Statix unification variable. Later constraints on \texttt{A} such as \texttt{A == Set}, will update the state of the variable to solved, with value \texttt{Set}.
 More importantly, the new state of \texttt{A} will also be visible in the binding that we created for the metavariable. 
 This approach settles how we can solve a metavariable, and make the solution visible for later reductions. However, it does not solve the issue of knowing if a metavariable is unsolved and therefore should not be reduced. Suppose that we want to replace $?m$ with A as part of a reduction. Statix will delay the result of the reduction because A's value might change. Even if A is later solved, at the moment we performed the reduction the correct result would have been to return the metavariable. Unfortunately, there isn't a way to interact with Statix's solver and query whether A is solved or not. Therefore, this solution isn't currently viable in Statix.
 
@@ -99,7 +99,7 @@ The first step that the equality rule will do is to reduce both terms up to weak
 It is also helpful to convert A and B to spine form representation after reducing to $whnf$. With this form terms have the form $hd \ [arg_1, arg_2,...]$ instead of $App(App(App(hd, arg_1), arg_2), ...)$. 
 Dealing with Rigid-Rigid problems is done by pattern matching on all the possible rigid heads in the language. A and B should have the same head but can have different arguments, meaning we need to recursively check for the equality of the arguments.
 
-\textbf{Rigid-Rigid decomposition rules}
+The decomposition rules are as follows:
 \begin{mathpar}
   \inferrule*[Right=Set]
   {\quad}
@@ -144,16 +144,16 @@ Dealing with Rigid-Rigid problems is done by pattern matching on all the possibl
 It is important to mention that before pattern matching on the arguments of $\equiv$, the checker will reduce to weak head normal form. This makes sure that substitutions we saved are performed when needed. \par
 Flex-Rigid problems require more careful handling. In general such constraints can either be solved, fail or be postponed. Our implementation cannot currently postpone constraints as it is not clear how to do so in Statix. However, we can recognize the cases where such a constraint can be successfully solved or should fail. Considering the problem to be in the form $?M \vec{x} \equiv R$, we perform the checks required by the higher order unification pattern algorithm:
 \begin{enumerate}
-  \item \textbf{Occurs check}: We obtain the free variables of the rigid term $R$ and check that $?M$ doesn't appear in them.
-  \item \textbf{Pattern check}: All arguments that $?M$ is applied on should be in the pattern fragment, namely they should all reduce to variables that are bound in this scope (bound variables).
-  \item \textbf{Linearity check}: After pattern check, we need to ensure that the bound variables are all unique.
-  \item \textbf{Scope check:}
+  \item \emph{Occurs check}: We obtain the free variables of the rigid term $R$ and check that $?M$ doesn't appear in them.
+  \item \emph{Pattern check}: All arguments that $?M$ is applied on should be in the pattern fragment, namely they should all reduce to variables that are bound in this scope (bound variables).
+  \item \emph{Linearity check}: After pattern check, we need to ensure that the bound variables are all unique.
+  \item \emph{Scope check}:
     Compute the free variables \(FV(R)\) and verify that they are contained in
     the set of variables visible from the scope in which \(?M\) was created.
    
 \end{enumerate}
 
-To implement these checks in Statix we require functions to reveal the free variables of a term and to obtain the binders that we are under in the current scope. Obtaining the free variables from term R is easy to do in our Statix representation. Free variables will have a \texttt{Fresh} constructor and will not be under a binder with the same name in R. Bound variables are obtained by querying for the \texttt{binder} relation starting from the current scope in which we perform the unification. This will return a list of all binders that we are under when unifying. Furthermore, all arguments that $?M$ is applied on should be elements of this list. If all the above conditions are met we can \textbf{invert} and obtain the solution for $?M$. The solution will have the form: $\backslash x_1.\ \backslash x_2.\ \backslash \dots R$ and will be guaranteed to be well scoped. \par
+To implement these checks in Statix we require functions to reveal the free variables of a term and to obtain the binders that we are under in the current scope. Obtaining the free variables from term R is easy to do in our Statix representation. Free variables will have a \texttt{Fresh} constructor and will not be under a binder with the same name in R. Bound variables are obtained by querying for the \texttt{binder} relation starting from the current scope in which we perform the unification. This will return a list of all binders that we are under when unifying. Furthermore, all arguments that $?M$ is applied on should be elements of this list. If all the above conditions are met we can invert and obtain the solution for $?M$. The solution will have the form: $\backslash x_1.\ \backslash x_2.\ \backslash \dots R$ and will be guaranteed to be well scoped. \par
 
 Flex-Flex problems are hard to deal with in Statix. Without the ability to postpone problems we need an approximation to this scenario. The only problem we can solve with certainty is of the form $?M \equiv ?N$, where we unify 2 different metavariables with no arguments. The solution is to make one metavariable equal to the other. For the rest of flex-flex problems we will fail type checking and signal that this is a flex-flex case.
 

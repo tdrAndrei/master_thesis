@@ -1,27 +1,23 @@
 Scope graphs provide an explicit representation of name binding and name
-resolution that can account for both lexical and non lexical scoping. This is
-useful for language constructs such as modules, imports, qualified references,
-and forward references. However, dependently typed languages introduce an
-additional challenge. Inference of implicit arguments can require higher order
-unification, where a solution may depend on variables introduced by surrounding
-binders.
+resolution that accounts for both lexical and non-lexical scoping, such as
+modules, imports, qualified references, and forward references. Dependently
+typed languages add a further challenge as inferring implicit arguments can
+require higher-order unification, where a solution may depend on variables
+introduced by surrounding binders.
 
-This paper investigates how higher order pattern unification can be combined
-with scope graph based name binding. We study this problem in Statix, a
-constraint language in the Spoofax language workbench that uses scope graphs
-for name resolution and provides first order unification as part of its solver.
-We implement a small dependently typed language and extend its type checker
-with higher order pattern unification. The implementation uses scope graph
-information to determine which bound variables may occur in a solution and to
-construct well scoped higher order solutions. The supported fragment covers the
-pattern cases considered in this paper, but does not include dynamic pattern
-unification, since constraints cannot be postponed and reconsidered later.
+This paper investigates how higher-order pattern unification can be combined
+with scope-graph-based name binding in Statix, the constraint language of the
+Spoofax language workbench, whose solver provides only first-order
+unification. We implement a small dependently typed language whose type
+checker uses scope graph information to determine which bound variables may
+occur in a solution and to construct well-scoped higher-order solutions. The
+implementation covers the pattern cases considered here, but not dynamic
+pattern unification, since constraints cannot be postponed.
 
-We also implement the core of the same language in Elpi using Higher Order
-Abstract Syntax. This provides a comparison with a setting where lexical
-binding and higher order unification are supported directly by the meta
-language. The comparison shows that HOAS is convenient for lexical binders and
-higher order inference, while scope graphs provide a direct representation of
-more general name resolution relations. This suggests that native support for
-higher order unification could improve scope graph based language
-implementations without replacing their explicit representation of binding.
+We also implement the core of the language in Elpi using Higher-Order Abstract
+Syntax, where lexical binding and higher-order unification are provided by the
+meta-language. The comparison shows that HOAS is convenient for lexical binders
+and higher-order inference, while scope graphs directly represent more general
+name resolution relations. This suggests that native support for higher-order
+unification could improve scope-graph-based language implementations without
+replacing their explicit representation of binding.

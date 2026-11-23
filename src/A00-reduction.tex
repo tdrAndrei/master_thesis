@@ -1,0 +1,216 @@
+\section{Reduction rules}
+\label{app:reduction}
+
+This appendix gives the complete reduction rules of the Statix type checker
+summarised in \cref{sec:beta-reduction}.
+
+\subsection{Weak head normalisation}
+
+Weak head normalisation is implemented as a head-reduction procedure with an
+explicit argument spine. We write
+\[
+\mathsf{whnf}_h(s; e; \overline{a}) = (s', e')
+\]
+to mean that expression \(e\), evaluated in scope \(s\), reduces to weak head
+normal form \(e'\) under scope \(s'\), while carrying a pending argument spine
+\(\overline{a}\). Each argument in the spine is a closure \((s_i,e_i)\), where
+\(s_i\) is the scope in which the argument \(e_i\) must be interpreted. The
+ordinary weak head normalisation function is the special case with an empty
+argument spine, \(\mathsf{whnf}(s;e) = \mathsf{whnf}_h(s;e;\epsilon)\).
+\Cref{fig:whnf} gives the rules.
+
+\begin{figure}[tbp]
+\[
+\begin{array}{rcll}
+\mathsf{whnf}_h(s; e_1\ e_2; \overline{a})
+&=&
+\mathsf{whnf}_h(s; e_1; (s,e_2) :: \overline{a})
+& \textsc{Wh-App}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; (e : A); \overline{a})
+&=&
+\mathsf{whnf}_h(s; e; \overline{a})
+& \textsc{Wh-Ann}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; \mathbf{let}\ x = v\ \mathbf{in}\ b; \overline{a})
+&=&
+\mathsf{whnf}_h(s[x' \mapsto (s,v)]; b; \overline{a})
+& \textsc{Wh-Let}
+\\
+&&
+\multicolumn{2}{l}{\text{where } x' = \mathsf{fresh}(s,x)}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; \lambda x.\ b; (s_a,a) :: \overline{a})
+&=&
+\mathsf{whnf}_h(s[x' \mapsto (s_a,a)]; b; \overline{a})
+& \textsc{Wh-Beta}
+\\
+&&
+\multicolumn{2}{l}{\text{where } x' = \mathsf{fresh}(s,x)}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; \lambda x.\ b; \epsilon)
+&=&
+(s,\lambda x.\ b)
+& \textsc{Wh-Lam}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; H; \overline{a})
+&=&
+\mathsf{rebuild}((s,H), \overline{a})
+& \textsc{Wh-Head}
+\\
+&&
+\multicolumn{2}{l}{
+H \in
+\{
+\Pi x : A.\ B,\ A \to B,\ \mathsf{Set}
+\}}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; x; \overline{a})
+&=&
+\mathsf{whnf}_h(s_v; v; \overline{a})
+& \textsc{Wh-VarSubst}
+\\
+&&
+\multicolumn{2}{l}{
+\text{if } \mathsf{lookupSubst}(s,x) = (s_v,v)}
+\\[0.8em]
+
+\mathsf{whnf}_h(s; x; \overline{a})
+&=&
+\mathsf{rebuild}((s,x), \overline{a})
+& \textsc{Wh-VarStuck}
+\\
+&&
+\multicolumn{2}{l}{
+\text{if } \mathsf{lookupSubst}(s,x) \text{ is undefined}}
+\end{array}
+\]
+\caption{Weak head normalisation with an explicit argument spine.}
+\label{fig:whnf}
+\Description{Eight equations defining whnf_h: Wh-App, Wh-Ann, Wh-Let, Wh-Beta and Wh-Lam perform head computation, while Wh-Head, Wh-VarSubst and Wh-VarStuck handle stuck heads and variables with or without a delayed substitution.}
+\end{figure}
+
+The first four rules perform head computation. Applications are decomposed into
+a head and an explicit argument spine. Type annotations are ignored during
+reduction. Let-bindings extend the current scope with a delayed substitution,
+and lambda abstractions consume one pending argument by extending the current
+scope with a delayed substitution for the bound variable. If a lambda has no
+pending argument, it is already in weak head normal form.
+
+The remaining rules describe stuck heads. A \(\Pi\)-type and \(\mathsf{Set}\)
+do not reduce at the head position, so the pending spine is rebuilt. Variables
+reduce only when they have a delayed substitution in the current scope.
+Otherwise, they are neutral terms, and the spine is rebuilt around them.
+\(\mathsf{rebuild}\) reconstructs applications once head reduction becomes
+stuck:
+\[
+\begin{array}{rcl}
+\mathsf{rebuild}((s,e), \epsilon)
+&=&
+(s,e)
+\\[0.5em]
+\mathsf{rebuild}((s,e), a :: \overline{a})
+&=&
+\mathsf{rebuild}(\mathsf{apply}((s,e),a),\overline{a}).
+\end{array}
+\]
+Applying a head to an argument preserves the argument's original scope. If the
+head and argument are already in the same scope, the application can be rebuilt
+directly:
+\[
+\mathsf{apply}((s,e),(s,a)) = (s, \mathsf{App}(e, a)).
+\]
+If the argument comes from a different scope or we have made some progress
+evaluating it, the argument is stored as a fresh temporary substitution, and the
+rebuilt application refers to the temporary variable:
+\[
+\mathsf{apply}((s,e),(s_a,a))
+=
+(s[t \mapsto (s_a,a)],\ \mathsf{App}(e, t))
+\qquad
+\text{where } t = \mathsf{fresh}(\_, \_app).
+\]
+
+\subsection{Full normalisation}
+
+Full normalisation first reduces the input expression to weak head normal form
+and then, once the outermost constructor is known, recursively normalises its
+immediate subexpressions. Unlike weak head normalisation, it continues under
+lambda abstractions, inside applications, and inside function types. We write
+\(\mathsf{normalise}(s,e) = e'\) to mean that expression \(e\), evaluated in
+scope \(s\), fully normalises to \(e'\). The auxiliary judgment
+\(\mathsf{normalise}_{\mathsf{wh}}(s,e) = e'\) normalises an expression that has
+already been reduced to weak head normal form. \Cref{fig:normalisation} gives
+the rules.
+
+\begin{figure}[tbp]
+  \begin{mathpar}
+  \inferrule*[right=\textsc{Norm-Whnf}]
+    {
+      \mathsf{whnf}(s,e) = (s',w)
+      \\
+      \mathsf{normalise}_{\mathsf{wh}}(s',w) = n
+    }
+    {
+      \mathsf{normalise}(s,e) = n
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-Pi}]
+    {
+      \mathsf{normalise}(s,A) = A'
+      \\
+      \mathsf{normalise}(s,B) = B'
+    }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,\Pi x : A.\ B)
+      =
+      \Pi x : A'.\ B'
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-Lam}]
+    {
+      \mathsf{normalise}(s,b) = b'
+    }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,\lambda x.\ b)
+      =
+      \lambda x.\ b'
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-App}]
+    {
+      \mathsf{normalise}(s,f) = f'
+      \\
+      \mathsf{normalise}(s,a) = a'
+    }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,f\ a)
+      =
+      f'\ a'
+    }
+
+  \and
+
+  \inferrule*[right=\textsc{Norm-Neutral}]
+    { }
+    {
+      \mathsf{normalise}_{\mathsf{wh}}(s,e) = e
+    }
+
+  \end{mathpar}
+  \caption{Full normalisation rules.}
+  \label{fig:normalisation}
+  \Description{Inference rules Norm-Whnf, Norm-Pi, Norm-Lam, Norm-App and Norm-Neutral, defining full normalisation of an expression in a scope via weak head normalisation followed by normalisation of the immediate subexpressions.}
+\end{figure}
