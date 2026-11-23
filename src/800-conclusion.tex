@@ -32,7 +32,7 @@ other metavariable's context removes the offending dependency and would let the
 solver handle more higher-order constraints.
 
 \paragraph{Closer integration with the Statix solver.}
-Metavariable state is currently threaded explicitly through a separate chain of
+Metavariable state is currently passed explicitly through a separate chain of
 scopes, because scope-graph bindings are immutable and the state of Statix
 unification variables cannot be inspected. Letting Statix unification variables
 depend on a local context, or exposing their state, could remove much of this
@@ -45,9 +45,5 @@ implementation used in \cref{sec:ScopeGraphs} are available at
 \url{https://github.com/tdrAndrei/master_thesis/releases/tag/v1.0.0}.
 
 \begin{acks}
-Generative AI tools were used for wording, formatting figures and LaTeX code, and
-finding documentation and related papers, and to find Elpi built-in functions
-for applying multiple arguments to a metavariable. They were not used to develop
-the metavariable scoping theory or the Statix code, and all technical claims
-were verified against the cited literature.
+Generative AI tools were used for wording, formatting figures, some LaTeX code, and finding documentation and related papers, and to find Elpi built-in functions for applying multiple arguments to a metavariable. They were not used to develop the metavariable scoping theory or the Statix code, and all technical claims were verified against the cited literature.
 \end{acks}

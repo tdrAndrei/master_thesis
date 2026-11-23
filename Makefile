@@ -1,5 +1,5 @@
 LATEXMK    = latexmk
-LATEXMKOPT = -xelatex -bibtex -shell-escape -synctex=1 -interaction=nonstopmode -file-line-error
+LATEXMKOPT = -xelatex -bibtex -synctex=1 -interaction=nonstopmode -file-line-error
 CONTINUOUS = -pvc -view=default -halt-on-error
 
 DOCUMENT   := document

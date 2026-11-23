@@ -3,7 +3,6 @@
 *.swp
 /out/
 .refresh
-_minted-document/
 missfont.log
 *.log
 *.fls

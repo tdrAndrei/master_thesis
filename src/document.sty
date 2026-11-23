@@ -66,8 +66,12 @@
 % here instead, before each lstlisting environment, at a shorter width.
 % \lsttoprulewidth is a fraction of the line width (1 = full width).
 \newcommand{\lsttoprulewidth}{0.5}
+% Keep the rule on the same page as the code: if fewer than three lines are
+% left on the page, \needspace moves the whole listing start to the next page.
+\usepackage{needspace}
 \AddToHook{env/lstlisting/before}{%
   \par\addvspace{\medskipamount}%
+  \needspace{3\baselineskip}%
   \hrule width \lsttoprulewidth\linewidth height \fboxrule\relax
   \nopagebreak\kern4pt\nopagebreak}
 

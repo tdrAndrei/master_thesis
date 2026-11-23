@@ -1,4 +1,4 @@
-\section{\label{sec:hou}Higher order unification}
+\section{\label{sec:hou}Higher-order unification}
 
 This section summarises the higher-order unification (HOU) problems that arise
 when elaborating a dependently typed language, and Miller's \emph{pattern
@@ -23,7 +23,7 @@ lookup function whose return type is left to inference:
 lookup : (A: Set) -> (n: Nat) -> (xs: Vec A n) -> (i: Fin n) -> _
 lookup A n xs i = ...
 \end{lstlisting}
-The trailing underscore is in the scope of \texttt{A}, \texttt{n},
+The underscore is in the scope of \texttt{A}, \texttt{n},
 \texttt{xs}, and \texttt{i}, so its metavariable $?M$ may depend on them. When
 the body is found to return a value of type $A$, this produces the constraint
 $?M\;[A\;n\;\mathit{xs}\;i] \doteq A$, which no closed term solves. The unknown
@@ -40,7 +40,7 @@ an extra beta reduction once $?M$ is solved by a lambda term.
 Writing every term in spine form $h\;\vec{e}$, a head $h$ is \emph{rigid} if it
 is a constant or bound variable and \emph{flex} if it is a metavariable. A
 unification problem $\Gamma \vdash t_1 \doteq t_2$ is then classified by its two
-heads \autocite{miller_logic_1991}. \emph{Rigid-rigid} problems are solvable iff
+heads \autocite{miller_logic_1991}. \emph{Rigid-rigid} problems are solvable if and only if
 the heads coincide and the argument spines unify pairwise. \emph{Flex-rigid} problems $?M\;\vec{e} \doteq t$ require inverting
 the application of $?M$, which is non-trivial in general because $\vec{e}$ may
 contain arbitrary terms, repeated variables, or other metavariables.
@@ -82,4 +82,4 @@ $?M := \lambda x\,y.\,y$ and reduce the problem to $x \doteq x$. This
 the elaborators of Agda and Lean. It is complemented by \emph{pruning}, which
 removes a metavariable's dependency on a variable that would otherwise escape
 the scope check of \textsc{pat-flex-rigid} \autocite{abel_extensions_2018}.
-These are not integrated in our implementation yet. (\cref{sec:future-work}).
+Neither is integrated in our implementation yet (\cref{sec:future-work}).

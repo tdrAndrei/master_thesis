@@ -72,9 +72,7 @@ through the typing rules.
 
 \subsection{Defining the language in HOAS}
 
-\Cref{lst:elpi-syntax} gives the Elpi representation of the core language.
-
-\begin{lstlisting}[language=Elpi, caption={The syntax of the language in Elpi},
+\begin{lstlisting}[language=Elpi, caption={The syntax of the language written in Elpi},
 label={lst:elpi-syntax}]
 kind tm type.
 type set  tm.
@@ -97,9 +95,7 @@ $\alpha$-equivalence is meta-level $\alpha$-equivalence. The remaining
 constructors are first-order: \lstinline|ann T A| annotates a term with a type,
 \lstinline|eq L R| is the equality type, \lstinline|refl| is checked against an
 equality whose sides are definitionally equal, and \lstinline|hole| is a
-placeholder that is elaborated to a unification variable. The polymorphic
-identity function $\lambda A.\lambda x.x :: (A : \mathsf{Set}) \to (x : A) \to A$
-is written as follows:
+placeholder that is elaborated to a unification variable. As an example, the polymorphic identity function $\lambda A.\lambda x.x :: (A : \mathsf{Set}) \to (x : A) \to A$ is written as follows:
 
 \begin{lstlisting}[language=Elpi, caption={The polymorphic identity function in HOAS},
 label={lst:elpi-identity}]
@@ -170,14 +166,7 @@ do not perform substitution, so our Statix implementation must define it
 explicitly, preserve the binding relationships of the substituted term, and
 avoid capture when a term moves below a binder (\cref{sec:substitution}).
 
-The same machinery gives reflexivity its meaning. Equality \lstinline|eq L R|
-infers the type of \lstinline|L| and checks \lstinline|R| against it, and
-\lstinline|refl T| has the inferred type \lstinline|eq T1 T1|. Unifying this
-type with an expected equality forces both sides to unify with the same term,
-possibly after normalisation, so \lstinline|refl| succeeds whenever the two
-sides are definitionally equal. For instance, \lstinline|refl x| checks against
-$(\lambda y.y)\;x \equiv x$ because conversion reduces the left-hand side to
-\lstinline|x|.
+Elpi's $\beta$-reduction is very useful in type checking equality. Equality \lstinline|eq L R| infers the type of \lstinline|L| and checks \lstinline|R| against it, and \lstinline|refl T| has the inferred type \lstinline|eq T1 T1|. Unifying this type with an expected equality forces both sides to unify with the same term, possibly after normalisation, so \lstinline|refl| succeeds whenever the two sides are definitionally equal. For instance, \lstinline|refl x| checks against $(\lambda y.y)\;x \equiv x$ because conversion reduces the left-hand side to \lstinline|x|.
 
 \subsubsection{Holes and scoped metavariables}
 
@@ -199,8 +188,8 @@ implementation has to provide itself (\cref{sec:Inference}).
 
 The HOAS implementation delegates much of the work of manipulating binders to
 the meta-language, but the context managed by \lstinline|pi| and hypothetical
-clauses is lexical and stack-structured: a hypothetical declaration exists only
-while its subgoal is being solved. This matches lambda abstractions and
+clauses is lexical and stack-structured (a hypothetical declaration exists only
+while its subgoal is being solved). This matches lambda abstractions and
 dependent function types, where a variable is visible only in the body. Module
 systems, however, create visibility between parts of the program that are not
 related in the syntax tree. In \cref{lst:moduleresolution}, the declaration of

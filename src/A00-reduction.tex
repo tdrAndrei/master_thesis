@@ -93,7 +93,7 @@ H \in
 \]
 \caption{Weak head normalisation with an explicit argument spine.}
 \label{fig:whnf}
-\Description{Eight equations defining whnf_h: Wh-App, Wh-Ann, Wh-Let, Wh-Beta and Wh-Lam perform head computation, while Wh-Head, Wh-VarSubst and Wh-VarStuck handle stuck heads and variables with or without a delayed substitution.}
+\Description{Eight equations defining whnf_h: Wh-App, Wh-Ann, Wh-Let and Wh-Beta perform head computation, Wh-Lam leaves a lambda without pending arguments unchanged, and Wh-Head, Wh-VarSubst and Wh-VarStuck handle stuck heads and variables with or without a delayed substitution.}
 \end{figure}
 
 The first four rules perform head computation. Applications are decomposed into

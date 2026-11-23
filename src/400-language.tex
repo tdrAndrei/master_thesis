@@ -1,7 +1,7 @@
 \section{\label{sec:Language}A Language with Dependent Types in Statix}
 
 \subsection{Language}
-The language implemented in Statix showcases the powerful features of dependent types. The core of the language is a lambda calculus with Pi types and let bindings. Concretely the syntax of our language is defined using the SDF3 syntax:
+The language implemented in Statix showcases the powerful features of dependent types. The core of the language is a lambda calculus with Pi types and let bindings. Concretely, the syntax of our language is defined in SDF3:
 \begin{lstlisting}[caption={Necessary syntax for dependent types}, language=SDF3]
 Expr.Let = [let [ID] = [Expr]; [Expr]]
 Expr.Set = "Set"
@@ -12,19 +12,19 @@ Expr.App = Expr Expr {left}
 Expr.Ann = Expr "::" Expr
 \end{lstlisting}
 
-\noindent The language is formed from lambda abstractions, applications, variables, let bindings, pi types and type annotations. The latter are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
+\noindent The language is formed from lambda abstractions, applications, variables, let bindings, Pi types and type annotations. The latter are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
 The two routines required for bidirectional typing have the following signatures:
 \begin{lstlisting}[language=Statix]
 infer : scope * Expr -> (Expr * Expr)
 check :  scope * Expr * Expr -> Expr
 \end{lstlisting}
-Both infer and check take the current scope and an expression from the object language. \texttt{check} also takes a type as an additional argument. Normally, infer would return the inferred type, while check wouldn't return anything since it would either succeed or fail. The extra \texttt{Expr} comes from the fact that both relations \textit{refine} their input terms: variables get replaced with fresh variables with globally unique names. In \cref{sec:Inference} we will also show how placeholders "\_" are refined to metavariables. Lastly, the following example represents a valid program in our language:
+Both infer and check take the current scope and an expression from the object language. \texttt{check} also takes a type as an additional argument. Normally, infer would return the inferred type, while check would not return anything since it would either succeed or fail. The extra \texttt{Expr} comes from the fact that both relations refine their input terms, meaning variables get replaced with fresh variables with globally unique names. In \cref{sec:Inference} we will also show how placeholders \texttt{\_} are refined to metavariables. Lastly, the following example represents a valid program in our language:
 \begin{lstlisting}
 (\T.\x. x) :: (T : Set) -> (t : T) -> T
 \end{lstlisting}
 We are given an annotated lambda term \texttt{\textbackslash T.\textbackslash x.x} which we can check against \texttt{(T : Set) → (t : T) → T}. The example will type check since we know that T is a type, x has type T and the return types match.
 
-\paragraph{Typing rules.} In the following we will formalize the type checking rules for the language. Since we are working within a bidirectional framework we will use the notation $e \Uparrow T \leadsto e'$ to express that term $e$ is inferred to type $T$ and can be refined to term $e'$. Furthermore, $e \Downarrow T \leadsto e'$ works similarly to the previous rule, but term $e$ is checked against a given type $T$. We also require a symbol to express equality between two terms: $x \equiv y$.
+\subsection{Typing rules} In the following we formalise the type checking rules for the language. Since we are working within a bidirectional framework we will use the notation $e \Uparrow T \leadsto e'$ to express that term $e$ is inferred to type $T$ and can be refined to term $e'$. Furthermore, $e \Downarrow T \leadsto e'$ works similarly to the previous rule, but term $e$ is checked against a given type $T$. We also require a symbol to express equality between two terms: $x \equiv y$.
 
 \begin{mathpar}
   \textbf{Inferred terms} \\
@@ -41,7 +41,7 @@ We are given an annotated lambda term \texttt{\textbackslash T.\textbackslash x.
 
   \inferrule*[Right=App]
   {s\vdash f \Uparrow (x : A) \rightarrow B \leadsto f' \quad s \vdash e \Uparrow A' \leadsto e' \quad A' \equiv A \quad [x\mapsto e']s \vdash B \Rightarrow_{\beta} R}
-  {s \vdash f e \Uparrow R \leadsto f' e'}
+  {s \vdash f\ e \Uparrow R \leadsto f'\ e'}
 
   \inferrule*[Right=Ann]
   {s\vdash T \Downarrow Set \leadsto T' \quad s\vdash e \Downarrow T' \leadsto e'}
@@ -51,11 +51,11 @@ We are given an annotated lambda term \texttt{\textbackslash T.\textbackslash x.
   \textbf{Checked terms} \\
   \inferrule*[Right=Pi]
   {s \vdash A \Downarrow Set \leadsto A' \quad (x_{fresh}, A')::s \vdash B \Downarrow Set \leadsto B'}
-  {s \vdash (x : A) \rightarrow B \Downarrow Set \leadsto (x_{fresh} : A') \rightarrow B'}
+  {s \vdash (x : A) \rightarrow B \Downarrow Set \leadsto (x_{fresh} : A') \rightarrow B'fresh}
 
   \inferrule*[Right=Lam]
-  {(x, A)::s \vdash b \Downarrow B \leadsto b'}
-  {s \vdash  \backslash x. b \Downarrow (x : A) \rightarrow B \leadsto x_{fresh}. b'}
+  {(x_{fresh}, A)::s \vdash b \Downarrow B \leadsto b'}
+  {s \vdash  \backslash x. b \Downarrow (x : A) \rightarrow B \leadsto \backslash x_{fresh}. b'}
 
   \inferrule*[Right=Unknown]
   {s \vdash e \Uparrow T' \leadsto e' \quad T' \equiv T}
@@ -94,6 +94,7 @@ scope graph in \cref{fig:my_label}:
 \end{circuitikz}
 }%
 \caption{Scope graph of \cref{listing:smalllet}}
+\Description{Two scopes, s1 and s2. Scope s1 holds the declaration !hasTy[x, Set], and s2 has a P edge to its parent s1.}
 \label{fig:my_label}
 \end{figure}
 
@@ -110,7 +111,7 @@ follows paths matching \(P^*\), and returns the type \(ty\) of the closest
 \(\mathsf{hasTy}\) declaration whose identifier matches $x$. The same mechanism
 accounts for shadowing, imports, and other name-resolution features.
 
-\paragraph{Substitutions} Besides the typing context, the checker must store
+\paragraph{Substitutions.} Besides the typing context, the checker must store
 substitutions. Consider an extension of \cref{listing:smalllet} in which
 \texttt{x} is used inside a type:
 
@@ -119,8 +120,8 @@ substitutions. Consider an extension of \cref{listing:smalllet} in which
   \a. a :: Set -> (\T. T) x
 \end{lstlisting}
 
-\noindent Checking this program requires type-level computation: the checker
-applies \texttt{\textbackslash T. T} to \texttt{x} and then substitutes
+\noindent Checking this program requires type-level computation: applying
+\texttt{\textbackslash T. T} to \texttt{x} and then substituting
 \texttt{Set} for \texttt{x}. Substituting eagerly would force re-checking and
 traversing whole terms, and would lose the link between errors and source
 locations that Statix maintains. Normalisation by evaluation
@@ -131,26 +132,26 @@ as done in earlier Statix type checkers
 \autocite{van_antwerpen_scopes_2018, none_dependently_2023}. A separate relation
 \texttt{subst} pairs an \texttt{ID} with a \texttt{Closure(scope, Expr)}, an
 expression together with the scope in which its free variables are declared:
-$$ \mathsf{subst} : \mathsf{ID} \rightarrow \mathsf{Closure} $$
+\[ \mathsf{subst} : \mathsf{ID} \rightarrow \mathsf{Closure} \]
 Closures may themselves contain variables with \texttt{subst} relations in other
 scopes, so reduction evaluates them recursively through the primitive
 $\mathsf{lookupSubst}$:
 \[
 \inferrule*[Right=lookup-Subst]
-{(x = id), P^* \vdash s \stackrel{subst}{\mapsto} (id, Closure(s', t)}{lookupSubst(s, x) = Closure(s', t)}
+{(x = id), P^* \vdash s \stackrel{subst}{\mapsto} (id, Closure(s', t))}{\mathsf{lookupSubst}(s, x) = Closure(s', t)}
 \]
 
 A drawback of call-by-name is that a let-bound variable used several times is
 evaluated at every use site.
 
-\paragraph{Name capture.} Substitution must avoid capture: in
+\paragraph{Name capture.} In the substitution
 $e[x := t]$, free variables of $t$ must not become bound in $e$. Naive
 substitution gets the following example wrong, because the free $y$ is captured
 by the binder $y$:
 \[
   \texttt{(\textbackslash x.\textbackslash y.x) y} \betared \texttt{\textbackslash y.y}
 \]
-The usual remedy is a nameless representation such as de Bruijn indices.
+The usual solution is a nameless representation such as de Bruijn indices.
 However, Statix connects names in the syntax to their declarations through
 resolution paths, and these names are also the link to editor services such as
 go-to-definition and error reporting. Translating bound variables to indices
@@ -182,12 +183,12 @@ In the Statix code we account for this by adding another case for the two querie
 \begin{mathpar}
 \inferrule*[Right=get-Ty-Loc]
 {(x = \mathsf{toString}(id)), P^* \vdash s \stackrel{hasTy}{\mapsto} (id, ty)  }{\mathsf{getTy}(s, Loc(x)) = ty}
-\and
+\\
 \inferrule*[Right=lookup-Subst-Loc]
-{(x = \mathsf{toString}(id)), P^* \vdash s \stackrel{subst}{\mapsto} (id, Closure(s', t)}{\mathsf{lookupSubst}(s, Loc(x)) = Closure(s', t)}
+{(x = \mathsf{toString}(id)), P^* \vdash s \stackrel{subst}{\mapsto} (id, Closure(s', t))}{\mathsf{lookupSubst}(s, Loc(x)) = Closure(s', t)}
 \end{mathpar}
 Here \texttt{toString} obtains the original string name from \texttt{Loc} or \texttt{Fresh} constructors. With this representation, the earlier example is handled without relying on
-De Bruijn indices:
+de Bruijn indices:
 \begin{align*}
   \texttt{(\textbackslash x.\textbackslash y.x) y}
   &\leadsto
@@ -200,7 +201,7 @@ The binder \texttt{y} and the free variable \(\texttt{y}\) are converted to diff
 \label{sec:beta-reduction}
 
 The checker needs two reduction routines. Weak head normalisation (whnf)
-reduces only the head of a term: $(\lambda x.\ x)\ Set$ reduces to $Set$,
+reduces only the head of a term. For instance, $(\lambda x.\ x)\ Set$ reduces to $Set$,
 whereas $\lambda x.\ ((\lambda y.\ y)\ x)$ is already in weak head normal form.
 Our Statix implementation performs head reduction with an explicit argument
 spine of closures. Let-bindings and beta-redexes do not substitute into the
@@ -218,12 +219,12 @@ that \texttt{f 1 2} with
 
 \subsection{Equality}
 Following Martin-L{\"o}f type theory \autocite{martinlof1984intuitionistic},
-equality is a type constructor rather than a boolean test: $x \equiv y$ is a
+equality is a type constructor rather than a boolean test. $x \equiv y$ is a
 type for any $x, y$ of the same type, and its only canonical inhabitant is
 $\mathsf{refl}$, which proves $x \equiv y$ exactly when $x$ and $y$ are
 \emph{definitionally equal}, that is, equal up to reduction.
 
-\paragraph{Equality in Statix.} In our language the equality type is written
+In our language the equality type is written
 \texttt{==} (e.g.\ \texttt{Set == Set}), and checking it requires both sides to
 have the same type. Reflexivity is built into the syntax as \texttt{refl}, a
 checked term whose expected type must be $x == y$ with $x$ unifying with $y$.
@@ -256,7 +257,7 @@ Stmt.Postulate = [postulate [ID]: [Expr];]
 A postulate attaches a type to a name without a value, so beta reduction treats
 the name as irreducible. A definition attaches both a type and a body.
 
-\paragraph{Forward references with scope graphs.} Unlike C, where top-level
+\paragraph{Forward references with scope graphs.} Unlike the C language, where top-level
 definitions may only refer to earlier ones, languages such as Java allow
 \emph{forward references} between top-level definitions. Ad-hoc compilers
 typically implement this with two passes: one that collects signatures and one
@@ -272,16 +273,16 @@ program, where the body of \texttt{g} refers to \texttt{f}, \texttt{suc}, and
 \texttt{zero} before they are declared:
 
 \begin{lstlisting}[caption=Forward references between statements, label=listing:forward-references]
-1. postulate Nat : Set;
+postulate Nat : Set;
 
-2. def g : Nat;
-3. g = f (suc zero);
+def g : Nat;
+g = f (suc zero);
 
-4. def f : Nat -> Nat;
-5. f = \n. suc n;
+def f : Nat -> Nat;
+f = \n. suc n;
 
-6. postulate suc : Nat -> Nat;
-7. postulate zero : Nat;
+postulate suc : Nat -> Nat;
+postulate zero : Nat;
 \end{lstlisting}
 The checker adds bindings for \texttt{Nat} and for the signature of \texttt{g}.
 Checking the body of \texttt{g} then produces queries for the types of
@@ -304,7 +305,7 @@ rejects the program.
 \subsection{Modules}
 
 Modules are a second source of non-lexical scoping in our language. We treat
-them purely as name-resolution constructs: a module is a named scope whose
+them purely as name-resolution constructs, since a module is a named scope whose
 declarations can be reached through qualified names such as \texttt{A.B.y} or
 made available for unqualified lookup by opening the module. The language
 supports module declarations, nesting, qualified access, and \texttt{open}
@@ -336,7 +337,7 @@ parent of \texttt{C}, which is the main source of non-lexical scoping.
 
 Declaring and opening a module are statements:
 
-\begin{lstlisting}[language=SDF3, caption=Module statements syntax]
+\begin{lstlisting}[language=SDF3, caption=Syntax for module statements]
 Stmt.Module = [module [ID] { [Stmt*] }]
 Stmt.Open = [open [ID];]
 \end{lstlisting} 
@@ -365,9 +366,9 @@ module A {
 }
 \end{lstlisting}
 
-\begin{figure}[!ht]
+\begin{figure}
 \centering
-\resizebox{0.6\linewidth}{!}{%
+\resizebox{0.5\linewidth}{!}{%
 \begin{circuitikz}
 \tikzstyle{every node}=[font=\fontsize{8.0pt}{10.4pt}\selectfont]
 \draw  (2.375,11.5) circle (0.875cm) node[ inner xsep=0.080cm, inner ysep=0.085cm, rounded corners=0.020cm] {\fontsize{18.2pt}{23.7pt}\selectfont $s_{top}$} ;
@@ -390,6 +391,7 @@ module A {
 \end{circuitikz}
 }%
 \caption{Resulting scope graph of \cref{lst:moduleresolution}}
+\Description{The top-level scope s_top holds the module bindings !modBind["A", s_A] and !modBind["B", s_B]. The module scopes s_A and s_B each have a P edge to s_top. Scope s_B holds !hasTy["x", Set], and s_A has an I edge to s_B created by opening B. A further scope inside A has a P edge to s_A.}
 \label{fig:scopegrahimport}
 \end{figure}
 
@@ -397,9 +399,7 @@ module A {
 \texttt{lookupSubst} accept paths of the form $P^* I?$, so resolution may walk
 at most one import. Local and imported declarations of the same name may then
 conflict. Agda lets users hide names when opening a module, whereas OCaml prefers local
-names over imported ones. We follow OCaml, which fits scope graph queries
-better: paths $P^*$ should be preferred over $P^* I$ even when the latter are
-shorter. Statix's prefix-based path ordering cannot express this. With the label
+names over imported ones. We want to follow the OCaml convention, but Statix's prefix-based path ordering cannot express this. With the label
 order $P < I$ it correctly prefers $PPP$ over $PPI$, but when a name is only
 reachable through imports it would prefer $PPI$ over the closer import $PI$. We
 therefore resolve names in two phases: first along $P^*$ only, and, if no
