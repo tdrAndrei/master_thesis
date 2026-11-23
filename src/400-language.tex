@@ -1,5 +1,8 @@
 \section{\label{sec:Language}A Language with Dependent Types in Statix}
 
+This section presents the dependently typed language that we implement in
+Statix.
+
 \subsection{Language}
 The language implemented in Statix showcases the powerful features of dependent types. The core of the language is a lambda calculus with Pi types and let bindings. Concretely, the syntax of our language is defined in SDF3:
 \begin{lstlisting}[caption={Necessary syntax for dependent types}, language=SDF3]
@@ -12,7 +15,7 @@ Expr.App = Expr Expr {left}
 Expr.Ann = Expr "::" Expr
 \end{lstlisting}
 
-\noindent The language is formed from lambda abstractions, applications, variables, let bindings, Pi types and type annotations. The latter are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: \textit{infer} and \textit{check}. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
+\noindent The language is formed from lambda abstractions, applications, variables, let bindings, Pi types and type annotations. The latter are very important for our bidirectional type checking approach \autocite{dunfield2022bidirectional}. In this method a type checker has two routines: infer and check. Variables, let expressions and applications are inferable, while lambda abstractions need to be checked against a type. Type annotations mark the transition from infer mode to check mode. Lastly, the \texttt{Set} constructor represents the type of types. In our language, \texttt{Set} has type \texttt{Set}. This allows Girard's paradox \autocite{hurkens1995simplification}, which shows that self-referential universes can derive a contradiction. However, the typing of \texttt{Set} is implemented in the language without loss of generality and can easily be extended with universe levels like in Agda. \par
 The two routines required for bidirectional typing have the following signatures:
 \begin{lstlisting}[language=Statix]
 infer : scope * Expr -> (Expr * Expr)
@@ -24,7 +27,7 @@ Both infer and check take the current scope and an expression from the object la
 \end{lstlisting}
 We are given an annotated lambda term \texttt{\textbackslash T.\textbackslash x.x} which we can check against \texttt{(T : Set) → (t : T) → T}. The example will type check since we know that T is a type, x has type T and the return types match.
 
-\subsection{Typing rules} In the following we formalise the type checking rules for the language. Since we are working within a bidirectional framework we will use the notation $e \Uparrow T \leadsto e'$ to express that term $e$ is inferred to type $T$ and can be refined to term $e'$. Furthermore, $e \Downarrow T \leadsto e'$ works similarly to the previous rule, but term $e$ is checked against a given type $T$. We also require a symbol to express equality between two terms: $x \equiv y$.
+\subsection{Typing rules} In the following we formalise the type checking rules for the language. Since we are working within a bidirectional framework, we use the notation $e \Uparrow T \leadsto e'$ to express that term $e$ is inferred to type $T$ and can be refined to term $e'$. Furthermore, $e \Downarrow T \leadsto e'$ is read similarly, but term $e$ is checked against a given type $T$. We also require a symbol to express equality between two terms: $x \equiv y$.
 
 \begin{mathpar}
   \textbf{Inferred terms} \\

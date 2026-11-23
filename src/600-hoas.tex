@@ -12,12 +12,6 @@ supports higher-order abstract syntax (HOAS), in which object-language binders
 are represented by meta-language binders \autocite{pfenning_higher-order_nodate},
 so substitution and $\alpha$-renaming are delegated to the Elpi runtime.
 
-We do not claim that either representation is universally preferable. HOAS is
-convenient for the locally scoped binders of lambda abstractions and dependent
-function types, whereas scope graphs give an explicit account of name
-resolution that benefits modules, imports, qualified references, and other
-forms of non-lexical scope.
-
 \subsection{Logic programming in Elpi}
 
 An Elpi program consists of relations defined by logical clauses, whose
@@ -166,7 +160,7 @@ do not perform substitution, so our Statix implementation must define it
 explicitly, preserve the binding relationships of the substituted term, and
 avoid capture when a term moves below a binder (\cref{sec:substitution}).
 
-Elpi's $\beta$-reduction is very useful in type checking equality. Equality \lstinline|eq L R| infers the type of \lstinline|L| and checks \lstinline|R| against it, and \lstinline|refl T| has the inferred type \lstinline|eq T1 T1|. Unifying this type with an expected equality forces both sides to unify with the same term, possibly after normalisation, so \lstinline|refl| succeeds whenever the two sides are definitionally equal. For instance, \lstinline|refl x| checks against $(\lambda y.y)\;x \equiv x$ because conversion reduces the left-hand side to \lstinline|x|.
+Elpi's $\beta$-reduction is very useful in type checking equality. The rule for \lstinline|eq L R| infers the type of \lstinline|L| and checks \lstinline|R| against it, and \lstinline|refl T| has the inferred type \lstinline|eq T1 T1|. Unifying this type with an expected equality forces both sides to unify with the same term, possibly after normalisation, so \lstinline|refl| succeeds whenever the two sides are definitionally equal. For instance, \lstinline|refl x| checks against $(\lambda y.y)\;x \equiv x$ because conversion reduces the left-hand side to \lstinline|x|.
 
 \subsubsection{Holes and scoped metavariables}
 

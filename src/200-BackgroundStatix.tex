@@ -1,7 +1,7 @@
 \section{\label{sec:statix}Background}
 
 This section introduces dependent types and the name-binding requirements they
-impose, and then the two approaches to name binding compared in this paper:
+impose. We also present the two approaches to name binding compared in this paper:
 scope graphs and higher-order abstract syntax.
 
 \subsection{Dependent Types}
@@ -12,13 +12,12 @@ values, so programmers can express and verify their own invariants within the
 type system. Binding values in types in turn requires type-level computation
 (reduction). We use Agda \autocite{norell2007practical} for examples.
 
-\subsubsection{Function types and Pi types}
 In the simply typed lambda calculus, a function type $A \to B$ describes functions that
 take an argument of type $A$ and return a result of type $B$. The return type
 $B$ is fixed and cannot refer to the value of the argument. A \emph{dependent
   function type} (or \emph{Pi type}), written $(x : A) \rightarrow B \ x$, generalises this by letting the return type $B \ x$ mention the argument $x$. When the return type does not depend on the argument, the Pi type reduces to an ordinary function type $A \to B$. As a first example, consider a function \texttt{zeros} : $\,(x : \mathsf{Int}) \rightarrow \, \mathsf{Vec} \  \mathsf{Int} \ x$, which produces a vector of zeros with length $x$. This cannot be expressed at the type level with an ordinary function type in the simply typed lambda calculus. 
 
-In practice, many type arguments can be inferred from context. Most dependently typed languages allow such arguments to be marked as \emph{implicit}, meaning they are automatically filled in by the type checker. The canonical example is the identity function, which can be given the type $\text{id} : \{A : \text{Type}\} \to A \to A$, where the braces indicate that $A$ is implicit. The caller writes $\text{id}\; 42$ rather than
+In practice, many type arguments can be inferred from context. Most dependently typed languages allow such arguments to be marked as \emph{implicit}, meaning they are automatically filled in by the type checker. The canonical example is the identity function, which can be given the type $\text{id} : \{A : \text{Set}\} \to A \to A$, where the braces indicate that $A$ is implicit. The caller writes $\text{id}\; 42$ rather than
 $\text{id}\; \mathbb{N}\; 42$, and the type checker infers that $A = \mathbb{N}$. This ability to infer implicit arguments is in fact a central motivation for this work. 
 
 \subsection{Name binding}
@@ -32,7 +31,7 @@ through the enclosing scopes of the AST and inner declarations shadow outer
 ones. Many practical languages also have \emph{non-lexical} scoping that the AST
 hierarchy cannot explain, such as module imports, class inheritance, qualified
 names, and forward references. A type checker can then no longer simply follow
-the AST: to check forward references, for instance, it must collect all
+the AST. To check forward references, for instance, it must collect all
 declarations of a scope before checking their uses. In most languages such
 scoping is handled in an ad-hoc manner inside the type checker
 \autocite{neron_extensible_2015}.
@@ -44,7 +43,7 @@ A dependently typed language adds subtle complexities to the name binding and re
 Inference is commonly implemented by inserting \emph{metavariables} where a term
 must be inferred. Unlike ordinary bound variables, metavariables start out
 unsolved. Later, unification constraints generated during elaboration progressively
-assign them \emph{solutions} until the missing information is reconstructed
+assign them solutions until the missing information is reconstructed
 \autocite{gundry2010typeinference,dunfield2013complete}. In contrast to
 Hindley-Milner inference \autocite{milner1978theory,damas1982principal}, where
 first-order unification suffices, these solutions may depend on binders.

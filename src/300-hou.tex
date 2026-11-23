@@ -8,7 +8,7 @@ fragment}, the decidable subset of HOU that our implementation targets.
 Inference in dependently typed languages is triggered by underscores
 \texttt{\_}, written by the user or, more often, inserted by the elaborator for
 implicit arguments (\cref{sec:statix}). Every underscore is replaced by a fresh
-\emph{metavariable} \texttt{?M}, and whenever a typing rule requires two open
+metavariable \texttt{?M}, and whenever a typing rule requires two open
 terms to be equal, those metavariables become unknowns in a \emph{unification
 problem}. Often this problem is first-order. For example, in Agda
 \autocite{norell2009dependently}, checking
@@ -27,7 +27,7 @@ The underscore is in the scope of \texttt{A}, \texttt{n},
 \texttt{xs}, and \texttt{i}, so its metavariable $?M$ may depend on them. When
 the body is found to return a value of type $A$, this produces the constraint
 $?M\;[A\;n\;\mathit{xs}\;i] \doteq A$, which no closed term solves. The unknown
-stands for a \emph{function}, and the problem is higher-order.
+stands for a function, and the problem is higher-order.
 
 \subsection{Metavariable solutions are functions}
 Metavariables that depend on their context can be represented as closures with
@@ -63,7 +63,7 @@ direct:
     {\Gamma \vdash ?M\;x_1\cdots x_n \;\doteq\; t \;\;\rightsquigarrow\;\; ?M := \lambda x_1\cdots x_n.\,t}
 \end{mathpar}
 Distinct variables make the substitution trivially invertible, the
-free-variable (\emph{scope}) check keeps the solution within $?M$'s context, and
+free-variable (scope) check keeps the solution within $?M$'s context, and
 the occurs check prevents cyclic solutions. Flex-flex problems within the
 fragment are solved by a fresh metavariable over the intersection of the two
 variable lists \autocite{abel_extensions_2018}.
